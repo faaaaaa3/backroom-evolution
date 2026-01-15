@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backsur - Roguelike Survival Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      background-color: #000;
+      color: white;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .fixed-panel {
+      position: fixed;
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #fff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #player-info {
+      top: 10px;
+      left: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    #event-log {
+      top: 320px;
+      left: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    #dialogue-log {
+      top: 10px;
+      right: 10px;
+      width: 300px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      padding: 2px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dialogue-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      background: rgba(50, 50, 50, 0.5);
+      border-radius: 3px;
+    }
+
+    .dialogue-speaker {
+      font-weight: bold;
+      color: #4dabf7;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    button {
+      background: #4a6fa5;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      margin: 2px;
+      border-radius: 3px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    button:hover {
+      background: #5a7fb5;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #survivor-list {
+      top: 10px;
+      left: 320px;
+      width: 300px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .survivor-item {
+      margin-bottom: 8px;
+      padding: 5px;
+      background: rgba(50, 50, 50, 0.5);
+      border-radius: 3px;
+    }
+
+    .survivor-name {
+      display: inline-block;
+      width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+    }
+
+    .jump-button {
+      float: right;
+    }
+
+    #current-lang {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    #tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #fff;
+      border-radius: 3px;
+      padding: 5px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+  </style>
+<script defer src="bundle.js"></script></head>
+<body>
+  <div id="game-container"></div>
+  
+  <div id="ui-overlay">
+    <div id="player-info" class="fixed-panel">
+      <h3>Player Status</h3>
+      <div id="status-content">Loading...</div>
+    </div>
+    
+    <div id="event-log" class="fixed-panel">
+      <h3>Event Log</h3>
+      <div id="log-content">Loading...</div>
+      <button id="clear-logs-btn">Clear Logs</button>
+    </div>
+    
+    <div id="dialogue-log" class="fixed-panel">
+      <h3>Dialogues</h3>
+      <div id="dialogue-content">No dialogues yet...</div>
+      <button id="toggle-dialogue-btn">Hide Dialogues</button>
+    </div>
+    
+    <div id="survivor-list" class="fixed-panel">
+      <h3>Survivors</h3>
+      <div id="survivor-content">Loading...</div>
+      <button id="toggle-survivor-btn">Hide Survivors</button>
+    </div>
+    
+    <div class="controls">
+      <p><strong>Controls:</strong></p>
+      <p>WASD/Arrow Keys: Move | E: Dismantle Materials | X: Dismantle Nearby Materials | R: Random Teleport | P: Spawn Person | K: Learn Knowledge | L: Toggle Logs | C: Collect Resources | A: Attack Nearby Monster | Shift+Click: Set Path | Right Click: View Details | Space: Pause</p>
+    </div>
+    
+    <div id="current-lang">ZH</div>
+  </div>
+  
+  <div id="tooltip" style="display: none;"></div>
+
+  <script>
+    // 全局游戏状态变量
+    let gameStats = document.getElementById('game-stats');
+    let playerInfo = document.getElementById('player-info');
+    let eventLog = document.getElementById('event-log');
+    let tooltip = document.getElementById('tooltip');
+    let currentLangElement = document.getElementById('current-lang');
+    let survivorsPanel = document.getElementById('survivors-panel');
+    let monstersPanel = document.getElementById('monsters-panel');
+    let toggleSurvivorsBtn = document.getElementById('toggle-survivors-btn');
+    let toggleMonstersBtn = document.getElementById('toggle-monsters-btn');
+    let logsPanel = document.getElementById('logs-panel');
+    let aiConfigPanel = document.getElementById('ai-config-panel');
+    let tickRatePanel = document.getElementById('tick-rate-panel');
+    
+    // 更新游戏统计数据
+    function updateGameStats(day, tick, alive, dead, monsters) {
+      if (gameStats) {
+        const lang = currentLangElement.textContent === 'zh' ? 'zh' : 'en';
+        const labels = {
+          zh: { day: '天数', tick: '滴答', alive: '存活', dead: '死亡', monsters: '怪物' },
+          en: { day: 'Day', tick: 'Tick', alive: 'Alive', dead: 'Dead', monsters: 'Monsters' }
+        };
+        const l = labels[lang];
+        
+        gameStats.innerHTML = `
+          ${l.day}: ${day}<br>
+          ${l.tick}: ${tick}<br>
+          ${l.alive}: ${alive}<br>
+          ${l.dead}: ${dead}<br>
+          ${l.monsters}: ${monsters}
+        `;
+      }
+    }
+    
+    // 更新玩家信息
+    function updatePlayerInfo(name, x, y, health, maxHealth, hunger, thirst, fatigue, attackPower, intelligence, inventory, knownKnowledges) {
+      if (playerInfo) {
+        const lang = currentLangElement.textContent === 'zh' ? 'zh' : 'en';
+        const labels = {
+          zh: { 
+            health: '生命值', 
+            hunger: '饥饿度', 
+            thirst: '口渴度', 
+            fatigue: '疲劳度', 
+            attackPower: '攻击力',
+            intelligence: '智力',
+            inventory: '库存',
+            knowledge: '知识'
+          },
+          en: { 
+            health: 'Health', 
+            hunger: 'Hunger', 
+            thirst: 'Thirst', 
+            fatigue: 'Fatigue', 
+            attackPower: 'Attack Power',
+            intelligence: 'Intelligence',
+            inventory: 'Inventory',
+            knowledge: 'Knowledge'
+          }
+        };
+        const l = labels[lang];
+        
+        const inventoryStr = Array.isArray(inventory) ? inventory.join(', ') : 'None';
+        const knowledgeStr = Array.isArray(knownKnowledges) ? knownKnowledges.join(', ') : 'None';
+        
+        playerInfo.innerHTML = `
+          ${name} (${x}, ${y})<br>
+          ${l.health}: ${health}/${maxHealth}<br>
+          ${l.hunger}: ${hunger.toFixed(1)}<br>
+          ${l.thirst}: ${thirst.toFixed(1)}<br>
+          ${l.fatigue}: ${fatigue.toFixed(1)}<br>
+          ${l.attackPower}: ${attackPower.toFixed(1)}<br>
+          ${l.intelligence}: ${(intelligence * 100).toFixed(1)}%<br>
+          ${l.inventory}: ${inventoryStr}<br>
+          ${l.knowledge}: ${knowledgeStr}
+        `;
+      }
+    }
+    
+    // 更新幸存者列表
+    function updateSurvivorsList(survivors) {
+      const survivorsList = document.getElementById('survivors-list');
+      if (!survivorsList) return;
+      
+      survivorsList.innerHTML = '';
+      
+      if (survivors && Array.isArray(survivors)) {
+        survivors.forEach((survivor) => {
+          const survivorCard = document.createElement('survivor-card');
+          survivorCard.setAttribute('data-survivor', JSON.stringify(survivor));
+          survivorsList.appendChild(survivorCard);
+        });
+      } else {
+        survivorsList.innerHTML = '<p>No survivors found.</p>';
+      }
+    }
+    
+    // 显示幸存者日志
+    function showSurvivorLogs(name, logs) {
+      const logsTitle = document.getElementById('logs-title');
+      const logsList = document.getElementById('logs-list');
+      
+      if (logsTitle && logsList) {
+        logsTitle.innerHTML = `${name} 的日志`;
+        
+        // 确保logs是数组，如果不是则尝试解析
+        let logsArray = logs;
+        if (!Array.isArray(logs)) {
+          try {
+            logsArray = JSON.parse(logs);
+          } catch(e) {
+            console.error("Failed to parse logs:", e);
+            logsArray = [];
+          }
+        }
+        
+        // 生成日志列表HTML
+        const logsHtml = logsArray.map(log => `<div>${log}</div>`).join('');
+        logsList.innerHTML = logsHtml || '<div>暂无日志</div>';
+        
+        logsPanel.style.display = 'block';
+      }
+    }
+    
+    // 关闭日志面板
+    function closeLogsPanel() {
+      logsPanel.style.display = 'none';
+    }
+    
+    // 跳转到幸存者位置
+    function jumpToSurvivor(x, y) {
+      window.jumpToPosition(x, y);
+    }
+    
+    // 跳转到指定位置
+    window.jumpToPosition = function(x, y) {
+      // 发送消息到Phaser游戏实例
+      window.parent.postMessage({
+        type: 'JUMP_TO_POSITION',
+        x: x,
+        y: y
+      }, '*');
+    };
+    
+    // 跳转到幸存者位置
+    window.jumpToSurvivor = function(x, y) {
+      window.jumpToPosition(x, y);
+    };
+    
+    // 显示/隐藏幸存者面板
+    window.toggleSurvivorsPanel = function() {
+      const isVisible = survivorsPanel.style.display !== 'none';
+      survivorsPanel.style.display = isVisible ? 'none' : 'block';
+      toggleSurvivorsBtn.textContent = isVisible ? '显示幸存者' : '隐藏幸存者';
+    };
+    
+    // 切换怪物面板显示/隐藏
+    window.toggleMonstersPanel = function() {
+      const isVisible = monstersPanel.style.display !== 'none';
+      monstersPanel.style.display = isVisible ? 'none' : 'block';
+      toggleMonstersBtn.textContent = isVisible ? '显示怪物' : '隐藏怪物';
+    };
+    
+    // 更新怪物列表
+    function updateMonstersList(monsters) {
+      const monstersList = document.getElementById('monsters-list');
+      if (!monstersList) return;
+      
+      monstersList.innerHTML = '';
+      
+      if (monsters && Array.isArray(monsters)) {
+        monsters.forEach((monster) => {
+          const monsterDiv = document.createElement('div');
+          monsterDiv.className = 'monster-item';
+          
+          const lang = currentLangElement.textContent === 'ZH' ? 'zh' : 'en';
+          const labels = {
+            zh: { 
+              remainingLife: '剩余生命', 
+              level: '等级', 
+              attackPower: '攻击力',
+              jump: '跳转'
+            },
+            en: { 
+              remainingLife: 'Remaining Life', 
+              level: 'Level', 
+              attackPower: 'Attack Power',
+              jump: 'Jump'
+            }
+          };
+          const l = labels[lang];
+          
+          monsterDiv.innerHTML = `
+            <div class="monster-name">${monster.name || 'Monster'}</div>
+            <div class="monster-position">(${monster.x}, ${monster.y})</div>
+            <div class="monster-status">
+              ${l.level}: ${monster.level}<br>
+              ${l.remainingLife}: ${monster.remainingLife}<br>
+              ${l.attackPower}: ${monster.attackPower.toFixed(1)}
+            </div>
+            <button class="jump-monster-button" onclick="jumpToMonster(${monster.x}, ${monster.y})">${l.jump}</button>
+          `;
+          
+          monstersList.appendChild(monsterDiv);
+        });
+      } else {
+        monstersList.innerHTML = '<p>No monsters found.</p>';
+      }
+    }
+    
+    // 跳转到怪物位置
+    function jumpToMonster(x, y) {
+      window.jumpToPosition(x, y);
+    }
+    
+    // 添加事件到日志
+    function addEventToLog(event) {
+      if (eventLog) {
+        eventLog.innerHTML += '<br>' + event;
+      }
+    }
+    
+    // 显示悬浮提示
+    function showTooltip(text, x, y) {
+      if (tooltip) {
+        tooltip.innerHTML = text;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+        tooltip.style.visibility = 'visible';
+      }
+    }
+    
+    // 隐藏悬浮提示
+    function hideTooltip() {
+      if (tooltip) {
+        tooltip.style.visibility = 'hidden';
+      }
+    }
+    
+    // 切换语言
+    window.switchLanguage = function() {
+      const currentLang = currentLangElement.textContent;
+      currentLangElement.textContent = currentLang === 'ZH' ? 'EN' : 'ZH';
+    };
+    
+    // 切换AI配置面板显示/隐藏
+    window.toggleAiConfigPanel = function() {
+      aiConfigPanel.style.display = aiConfigPanel.style.display === 'block' ? 'none' : 'block';
+    };
+    
+    // 关闭AI配置面板
+    window.closeAiConfigPanel = function() {
+      aiConfigPanel.style.display = 'none';
+    };
+    
+    // 保存AI配置
+    window.saveAiConfig = function() {
+      const apiUrl = document.getElementById('api-url').value;
+      const apiKey = document.getElementById('api-key').value;
+      const modelName = document.getElementById('model-name').value;
+      
+      // 保存到localStorage
+      localStorage.setItem('aiApiUrl', apiUrl);
+      localStorage.setItem('aiApiKey', apiKey);
+      localStorage.setItem('aiModelName', modelName);
+      
+      alert('AI配置已保存！');
+      closeAiConfigPanel();
+    };
+    
+    // 切换Tick速率面板显示/隐藏
+    window.toggleTickRatePanel = function() {
+      // 从游戏场景获取当前tick速率
+      const gameScene = window.game?.scene?.getScene('GameScene');
+      if (gameScene && gameScene.ticksPerSecond) {
+        document.getElementById('tick-rate').value = gameScene.ticksPerSecond;
+      }
+      tickRatePanel.style.display = tickRatePanel.style.display === 'block' ? 'none' : 'block';
+    };
+    
+    // 关闭Tick速率面板
+    window.closeTickRatePanel = function() {
+      tickRatePanel.style.display = 'none';
+    };
+    
+    // 保存Tick速率设置
+    window.saveTickRate = function() {
+      const tickRate = parseInt(document.getElementById('tick-rate').value);
+      if (isNaN(tickRate) || tickRate < 1 || tickRate > 60) {
+        alert('请输入有效的Tick速率 (1-60)');
+        return;
+      }
+      
+      // 通知游戏场景更新tick速率
+      const gameScene = window.game?.scene?.getScene('GameScene');
+      if (gameScene) {
+        gameScene.setTicksPerSecond(tickRate);
+      }
+      
+      alert(`Tick速率已设置为 ${tickRate} ticks/s`);
+      closeTickRatePanel();
+    };
+    
+    // 显示tooltip
+    window.showTooltip = function(content, x, y) {
+      if (tooltip) {
+        tooltip.innerHTML = content;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+        tooltip.style.visibility = 'visible';
+      }
+    };
+    
+    // 隐藏tooltip
+    window.hideTooltip = function() {
+      if (tooltip) {
+        tooltip.style.visibility = 'hidden';
+      }
+    };
+    
+    // 添加事件到事件日志
+    window.addEventLog = function(event) {
+      if (eventLog) {
+        const current = eventLog.innerHTML;
+        const newEvent = current + '<br/>' + event;
+        // 限制日志数量
+        const events = newEvent.split('<br/>');
+        if (events.length > 10) {
+          eventLog.innerHTML = events.slice(-10).join('<br/>');
+        } else {
+          eventLog.innerHTML = newEvent;
+        }
+      }
+    };
+    
+    function addDialogueToUI(speaker, content, x, y) {
+      const dialogueEntry = document.createElement('div');
+      dialogueEntry.className = 'dialogue-entry';
+      
+      const speakerSpan = document.createElement('span');
+      speakerSpan.className = 'dialogue-speaker';
+      speakerSpan.textContent = speaker;
+      speakerSpan.onclick = () => centerCameraOnPerson(speaker, x, y);
+      
+      dialogueEntry.appendChild(speakerSpan);
+      dialogueEntry.innerHTML += `: ${content}`;
+      
+      const dialogueContent = document.getElementById('dialogue-content');
+      dialogueContent.appendChild(dialogueEntry);
+      
+      // 自动滚动到底部
+      dialogueContent.scrollTop = dialogueContent.scrollHeight;
+    }
+
+    function centerCameraOnPerson(name, x, y) {
+      if (window.game) {
+        window.game.scene.getScene('GameScene').centerCameraOnPosition(x, y);
+      }
+    }
+
+  </script>
+</body>
+</html>
