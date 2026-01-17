@@ -1,11 +1,4 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Backsur - Roguelike Survival Game</title>
-  <style>
-    body {
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Backsur - Roguelike Survival Game</title><style>body {
       margin: 0;
       padding: 0;
       font-family: Arial, sans-serif;
@@ -37,6 +30,8 @@
       border: 1px solid #fff;
       padding: 10px;
       border-radius: 5px;
+      max-height: 600px;
+      overflow-y: auto;
     }
 
     #player-info {
@@ -59,6 +54,40 @@
       width: 300px;
       max-height: 600px;
       overflow-y: auto;
+    }
+
+    #survivor-details {
+      top: 10px;
+      left: 320px;
+      width: 300px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    #chat-interface {
+      position: fixed;
+      bottom: 100px;
+      left: 10px;
+      width: 400px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #fff;
+      border-radius: 5px;
+      padding: 10px;
+      display: none;
+    }
+
+    #ai-config {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px;
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #fff;
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+      z-index: 2000;
     }
 
     .log-entry {
@@ -113,19 +142,14 @@
       display: none !important;
     }
 
-    #survivor-list {
-      top: 10px;
-      left: 320px;
-      width: 300px;
-      max-height: 600px;
-      overflow-y: auto;
-    }
-
     .survivor-item {
       margin-bottom: 8px;
       padding: 5px;
       background: rgba(50, 50, 50, 0.5);
       border-radius: 3px;
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .survivor-name {
@@ -160,48 +184,58 @@
       pointer-events: none;
       z-index: 1000;
       white-space: nowrap;
+      max-width: 300px;
+      word-wrap: break-word;
     }
-  </style>
-<script defer src="bundle.js"></script></head>
-<body>
-  <div id="game-container"></div>
-  
-  <div id="ui-overlay">
-    <div id="player-info" class="fixed-panel">
-      <h3>Player Status</h3>
-      <div id="status-content">Loading...</div>
-    </div>
     
-    <div id="event-log" class="fixed-panel">
-      <h3>Event Log</h3>
-      <div id="log-content">Loading...</div>
-      <button id="clear-logs-btn">Clear Logs</button>
-    </div>
+    .details-button {
+      display: inline-block;
+      background: #8a2be2;
+      color: white;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-left: 5px;
+    }
     
-    <div id="dialogue-log" class="fixed-panel">
-      <h3>Dialogues</h3>
-      <div id="dialogue-content">No dialogues yet...</div>
-      <button id="toggle-dialogue-btn">Hide Dialogues</button>
-    </div>
+    .ai-toggle {
+      display: inline-block;
+      background: #ff6b6b;
+      color: white;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-right: 5px;
+    }
     
-    <div id="survivor-list" class="fixed-panel">
-      <h3>Survivors</h3>
-      <div id="survivor-content">Loading...</div>
-      <button id="toggle-survivor-btn">Hide Survivors</button>
-    </div>
+    .ai-toggle.enabled {
+      background: #51cf66;
+    }
     
-    <div class="controls">
-      <p><strong>Controls:</strong></p>
-      <p>WASD/Arrow Keys: Move | E: Dismantle Materials | X: Dismantle Nearby Materials | R: Random Teleport | P: Spawn Person | K: Learn Knowledge | L: Toggle Logs | C: Collect Resources | A: Attack Nearby Monster | Shift+Click: Set Path | Right Click: View Details | Space: Pause</p>
-    </div>
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      box-sizing: border-box;
+      background: rgba(50, 50, 50, 0.8);
+      color: white;
+      border: 1px solid #fff;
+      border-radius: 3px;
+    }
     
-    <div id="current-lang">ZH</div>
-  </div>
-  
-  <div id="tooltip" style="display: none;"></div>
-
-  <script>
-    // 全局游戏状态变量
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 8px;
+      margin: 5px 0;
+      box-sizing: border-box;
+      background: rgba(50, 50, 50, 0.8);
+      color: white;
+      border: 1px solid #fff;
+      border-radius: 3px;
+    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3>Player Status</h3><div id="status-content">Loading...</div></div><div id="event-log" class="fixed-panel"><h3>Event Log</h3><div id="log-content">Loading...</div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3>Dialogues</h3><div id="dialogue-content">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3>Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><h3>Chat with Character</h3><div id="chat-with">Chatting with: <span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3>AI Configuration</h3><label for="api-url">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions"> <label for="api-key">API Key:</label> <input type="password" id="api-key" placeholder="Enter your API key"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config">Save Config</button> <button id="close-ai-config">Close</button></div></div><div class="controls"><p><strong>Controls:</strong></p><p>Arrow Keys: Move Player | WASD: Move View | E/X: Dismantle Materials | R: Random Teleport | P: Spawn Person | K: Learn Knowledge | L: Toggle Logs | C: Collect Resources | A: Attack Nearby Monster | Shift+Click: Set Path | Right Click: View Details | Space: Pause</p><button id="open-ai-config">Configure AI</button></div><div id="current-lang">ZH</div></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
     let gameStats = document.getElementById('game-stats');
     let playerInfo = document.getElementById('player-info');
     let eventLog = document.getElementById('event-log');
@@ -343,6 +377,8 @@
         x: x,
         y: y
       }, '*');
+      console.log("Jump to position:", x, y);
+      centerCameraOnPerson('', x, y);
     };
     
     // 跳转到幸存者位置
@@ -535,7 +571,7 @@
         }
       }
     };
-    
+
     function addDialogueToUI(speaker, content, x, y) {
       const dialogueEntry = document.createElement('div');
       dialogueEntry.className = 'dialogue-entry';
@@ -561,6 +597,214 @@
       }
     }
 
-  </script>
-</body>
-</html>
+    function showTooltip(content, x, y) {
+      const tooltip = document.getElementById('tooltip');
+      if (tooltip) {
+        tooltip.innerHTML = content.replace(/\n/g, '<br>');
+        tooltip.style.left = x + 10 + 'px';
+        tooltip.style.top = y + 10 + 'px';
+        tooltip.style.display = 'block';
+        
+        // 确保tooltip不会超出屏幕边界
+        const tipRect = tooltip.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        let adjustedLeft = x + 10;
+        let adjustedTop = y + 10;
+        
+        if (x + 10 + tipRect.width > windowWidth) {
+          adjustedLeft = windowWidth - tipRect.width - 10;
+        }
+        
+        if (y + 10 + tipRect.height > windowHeight) {
+          adjustedTop = y - tipRect.height - 10;
+        }
+        
+        tooltip.style.left = adjustedLeft + 'px';
+        tooltip.style.top = adjustedTop + 'px';
+      }
+    }
+
+    // 鼠标移动时更新tooltip位置
+    document.addEventListener('mousemove', (e) => {
+      const tooltip = document.getElementById('tooltip');
+      if (tooltip && tooltip.style.display !== 'none') {
+        tooltip.style.left = e.clientX + 10 + 'px';
+        tooltip.style.top = e.clientY + 10 + 'px';
+        
+        // 确保tooltip不超出窗口边界
+        const tipRect = tooltip.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        let adjustedLeft = e.clientX + 10;
+        let adjustedTop = e.clientY + 10;
+        
+        if (e.clientX + tipRect.width > windowWidth) {
+          adjustedLeft = windowWidth - tipRect.width - 10;
+        }
+        
+        if (e.clientY + tipRect.height > windowHeight) {
+          adjustedTop = e.clientY - tipRect.height - 10;
+        }
+        
+        tooltip.style.left = adjustedLeft + 'px';
+        tooltip.style.top = adjustedTop + 'px';
+      }
+    });
+
+    // 鼠标离开游戏容器时隐藏tooltip
+    document.getElementById('game-container').addEventListener('mouseleave', () => {
+      const tooltip = document.getElementById('tooltip');
+      if (tooltip) {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    // 添加按钮事件监听器
+    document.addEventListener('DOMContentLoaded', () => {
+      // 日志面板切换按钮
+      const logsToggleBtn = document.createElement('button');
+      logsToggleBtn.id = 'toggle-logs-btn';
+      logsToggleBtn.textContent = 'Hide Logs';
+      logsToggleBtn.onclick = window.toggleLogsPanel;
+      
+      const eventLog = document.getElementById('event-log');
+      if (eventLog) {
+        eventLog.appendChild(logsToggleBtn);
+      }
+      
+      // 清除日志按钮
+      const clearLogsBtn = document.getElementById('clear-logs-btn');
+      if (clearLogsBtn) {
+        clearLogsBtn.onclick = window.clearLogs;
+      }
+      
+      // 对话面板切换按钮
+      const dialogueToggleBtn = document.getElementById('toggle-dialogue-btn');
+      if (dialogueToggleBtn) {
+        dialogueToggleBtn.onclick = () => {
+          const dialogueLog = document.getElementById('dialogue-log');
+          if (dialogueLog) {
+            dialogueLog.classList.toggle('hidden');
+            dialogueToggleBtn.textContent = dialogueLog.classList.contains('hidden') ? 'Show Dialogues' : 'Hide Dialogues';
+          }
+        };
+      }
+      
+      // 幸存者详情面板切换按钮
+      const survivorToggleBtn = document.getElementById('toggle-survivor-btn');
+      if (survivorToggleBtn) {
+        survivorToggleBtn.onclick = () => {
+          const survivorDetails = document.getElementById('survivor-details');
+          if (survivorDetails) {
+            survivorDetails.classList.toggle('hidden');
+            survivorToggleBtn.textContent = survivorDetails.classList.contains('hidden') ? 'Show Details' : 'Hide Details';
+          }
+        };
+      }
+      
+      // 添加聊天功能
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            const target = document.getElementById('chat-target').textContent;
+            if (target && target !== 'None') {
+              const message = chatInput.value.trim();
+              if (message) {
+                // 添加用户消息到聊天框
+                const chatMessages = document.getElementById('chat-messages');
+                const userMessage = document.createElement('div');
+                userMessage.textContent = `You: ${message}`;
+                userMessage.style.marginBottom = '5px';
+                chatMessages.appendChild(userMessage);
+                
+                // 发送消息给AI
+                if (window.game) {
+                  window.game.scene.getScene('GameScene').processChatMessage(target, message);
+                }
+                
+                chatInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+              }
+            }
+          }
+        });
+      }
+      
+      // AI配置窗口相关事件
+      const openAiConfigBtn = document.getElementById('open-ai-config');
+      const aiConfigWindow = document.getElementById('ai-config');
+      const closeAiConfigBtn = document.getElementById('close-ai-config');
+      const saveAiConfigBtn = document.getElementById('save-ai-config');
+      
+      if (openAiConfigBtn) {
+        openAiConfigBtn.onclick = () => {
+          aiConfigWindow.style.display = 'block';
+          
+          // 加载现有配置
+          const config = JSON.parse(localStorage.getItem('aiConfig') || '{}');
+          if (config.apiUrl) {
+            document.getElementById('api-url').value = config.apiUrl;
+          }
+          if (config.apiKey) {
+            document.getElementById('api-key').value = config.apiKey;
+          }
+        };
+      }
+      
+      if (closeAiConfigBtn) {
+        closeAiConfigBtn.onclick = () => {
+          aiConfigWindow.style.display = 'none';
+        };
+      }
+      
+      if (saveAiConfigBtn) {
+        saveAiConfigBtn.onclick = () => {
+          const apiUrl = document.getElementById('api-url').value;
+          const apiKey = document.getElementById('api-key').value;
+          
+          if (apiUrl && apiKey) {
+            const config = { apiUrl, apiKey };
+            localStorage.setItem('aiConfig', JSON.stringify(config));
+            alert('AI配置已保存！');
+            aiConfigWindow.style.display = 'none';
+          } else {
+            alert('请填写完整的API配置信息！');
+          }
+        };
+      }
+    });
+    
+    // 显示聊天界面的函数
+    function showChatInterface(targetName) {
+      const chatInterface = document.getElementById('chat-interface');
+      const chatTarget = document.getElementById('chat-target');
+      
+      if (chatInterface && chatTarget) {
+        chatTarget.textContent = targetName;
+        chatInterface.style.display = 'block';
+      }
+    }
+    
+    // 隐藏聊天界面的函数
+    function hideChatInterface() {
+      const chatInterface = document.getElementById('chat-interface');
+      if (chatInterface) {
+        chatInterface.style.display = 'none';
+      }
+    }
+    
+    // 添加消息到聊天界面
+    function addMessageToChat(sender, message) {
+      const chatMessages = document.getElementById('chat-messages');
+      if (chatMessages) {
+        const msgElement = document.createElement('div');
+        msgElement.textContent = `${sender}: ${message}`;
+        msgElement.style.marginBottom = '5px';
+        chatMessages.appendChild(msgElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    }</script></body></html>
