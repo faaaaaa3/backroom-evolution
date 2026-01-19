@@ -203,6 +203,16 @@
       font-size: 11px;
       margin-left: 5px;
     }
+    .chat-button {
+      display: inline-block;
+      background: #8a2be2;
+      color: white;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-left: 5px;
+    }
     
     .ai-toggle {
       display: inline-block;
@@ -240,7 +250,7 @@
       color: white;
       border: 1px solid #fff;
       border-radius: 3px;
-    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3>Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"></div><div id="event-log" class="fixed-panel"><h3>Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3>Dialogues</h3><div id="dialogue-content">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3>Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><h3>Chat with Character</h3><div id="chat-with">Chatting with: <span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3>AI Configuration</h3><label for="api-url">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key">API Key:</label> <input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-chat" value="deepseek-chat"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config">Save Config</button> <button id="close-ai-config">Close</button></div></div><div class="controls"><p><strong>Controls:</strong></p><p>Arrow Keys: Move Player | WASD: Move Camera | E/X: Dismantle Near Material Wall | R: Random Teleport | P: Spawn Person | K: Learn Knowledge | L: Toggle Logs | C: Collect Resources | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Space: Pause | Some of these have a cooldown duration.</p><button id="open-ai-config">Configure AI</button> <span>the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><div id="current-lang">ZH</div></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
+    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3>Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"></div><div id="event-log" class="fixed-panel"><h3>Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3>Dialogues</h3><div id="dialogue-content">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3>Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><h3>Chat with Character</h3><div id="chat-with">Chatting with: <span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3>AI Configuration</h3><label for="api-url">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key">API Key:</label><br/><input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-chat" value="deepseek-chat"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config">Save Config</button> <button id="close-ai-config">Close</button></div></div><div class="controls"><p><strong>Controls:</strong></p><p>Arrow Keys: Move Player | WASD: Move Camera | E/X: Dismantle Near Material Wall | R: Random Teleport | P: Spawn Person | K: Learn Knowledge | L: Toggle Logs | C: Collect Resources | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Space: Pause | Some of these have a cooldown duration.</p><button id="open-ai-config">Configure AI</button> <span>the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><div id="current-lang">ZH</div></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
     let gameStats = document.getElementById('game-stats');
     let playerInfo = document.getElementById('player-info');
     let eventLog = document.getElementById('event-log');
@@ -319,23 +329,6 @@
       }
     }
     
-    // 更新幸存者列表
-    function updateSurvivorsList(survivors) {
-      const survivorsList = document.getElementById('survivors-list');
-      if (!survivorsList) return;
-      
-      survivorsList.innerHTML = '';
-      
-      if (survivors && Array.isArray(survivors)) {
-        survivors.forEach((survivor) => {
-          const survivorCard = document.createElement('survivor-card');
-          survivorCard.setAttribute('data-survivor', JSON.stringify(survivor));
-          survivorsList.appendChild(survivorCard);
-        });
-      } else {
-        survivorsList.innerHTML = '<p>No survivors found.</p>';
-      }
-    }
     
     // 显示幸存者日志
     function showSurvivorLogs(name, logs) {
@@ -404,63 +397,12 @@
       monstersPanel.style.display = isVisible ? 'none' : 'block';
       toggleMonstersBtn.textContent = isVisible ? '显示怪物' : '隐藏怪物';
     };
-    
-    // 更新怪物列表
-    function updateMonstersList(monsters) {
-      const monstersList = document.getElementById('monsters-list');
-      if (!monstersList) return;
-      
-      monstersList.innerHTML = '';
-      
-      if (monsters && Array.isArray(monsters)) {
-        monsters.forEach((monster) => {
-          const monsterDiv = document.createElement('div');
-          monsterDiv.className = 'monster-item';
-          
-          const lang = currentLangElement.textContent === 'ZH' ? 'zh' : 'en';
-          const labels = {
-            zh: { 
-              remainingLife: '剩余生命', 
-              level: '等级', 
-              attackPower: '攻击力',
-              jump: '跳转'
-            },
-            en: { 
-              remainingLife: 'Remaining Life', 
-              level: 'Level', 
-              attackPower: 'Attack Power',
-              jump: 'Jump'
-            }
-          };
-          const l = labels[lang];
-          
-          monsterDiv.innerHTML = `
-            <div class="monster-name">${monster.name || 'Monster'}</div>
-            <div class="monster-position">(${monster.x}, ${monster.y})</div>
-            <div class="monster-status">
-              ${l.level}: ${monster.level}<br>
-              ${l.remainingLife}: ${monster.remainingLife}<br>
-              ${l.attackPower}: ${monster.attackPower.toFixed(1)}
-            </div>
-            <button class="jump-monster-button" onclick="jumpToMonster(${monster.x}, ${monster.y})">${l.jump}</button>
-          `;
-          
-          monstersList.appendChild(monsterDiv);
-        });
-      } else {
-        monstersList.innerHTML = '<p>No monsters found.</p>';
-      }
-    }
-    
-    // 跳转到怪物位置
-    function jumpToMonster(x, y) {
-      window.jumpToPosition(x, y);
-    }
+
     
     // 添加事件到日志
     function addEventToLog(event) {
       if (eventLog) {
-        eventLog.innerHTML += '<br>' + event;
+        eventLog.innerHTML = eventLog.innerHTML + '<br>' + event;
       }
     }
     
