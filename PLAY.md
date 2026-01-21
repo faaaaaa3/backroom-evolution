@@ -20,4 +20,6 @@ It's so limited, and we'll add a lot in the future
 + drop some item in bag
 + interact with nearby people(sharing food and exchange items may happen)
 + chat with anyone
-
++ give assined item to anyone
++ craft items
++ build structures
