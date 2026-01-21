@@ -305,7 +305,8 @@
             attackPower: '攻击力',
             intelligence: '智力',
             inventory: '库存',
-            knowledge: '知识'
+            knowledge: '知识',
+            drop: '丢弃'
           },
           en: { 
             health: 'Health', 
@@ -315,28 +316,127 @@
             attackPower: 'Attack Power',
             intelligence: 'Intelligence',
             inventory: 'Inventory',
-            knowledge: 'Knowledge'
+            knowledge: 'Knowledge',
+            drop: 'Drop'
           }
         };
         const l = labels[lang];
         
-        const inventoryStr = Array.isArray(inventory) ? inventory.join(', ') : 'None';
-        const knowledgeStr = Array.isArray(knownKnowledges) ? knownKnowledges.join(', ') : 'None';
+        // 首先更新基本状态信息
+        const playerInfoDiv = document.getElementById('player-info');
+        if (!playerInfoDiv) return;
         
-        playerInfo.innerHTML = `
-          ${name} (${x}, ${y})<br>
-          ${l.health}: ${health}/${maxHealth}<br>
-          ${l.hunger}: ${hunger.toFixed(1)}<br>
-          ${l.thirst}: ${thirst.toFixed(1)}<br>
-          ${l.fatigue}: ${fatigue.toFixed(1)}<br>
-          ${l.attackPower}: ${attackPower.toFixed(1)}<br>
-          ${l.intelligence}: ${(intelligence * 100).toFixed(1)}%<br>
-          ${l.inventory}: ${inventoryStr}<br>
-          ${l.knowledge}: ${knowledgeStr}
-        `;
+        // 获取或创建状态内容容器
+        let statusContent = document.getElementById('status-content');
+        if (statusContent.innerText == "Loading...") {
+          //statusContent = document.createElement('div');
+          //statusContent.id = 'status-content';
+          //playerInfoDiv.appendChild(statusContent);
+          
+          // 初始化内容
+          statusContent.innerHTML = `
+            <h3 id="player-name-pos">-</h3>
+            <p id="player-health">${l.health}: -</p>
+            <p id="player-hunger">${l.hunger}: -</p>
+            <p id="player-thirst">${l.thirst}: -</p>
+            <p id="player-fatigue">${l.fatigue}: -</p>
+            <p id="player-attack">${l.attackPower}: -</p>
+            <p id="player-intelligence">${l.intelligence}: -</p>
+            <p id="player-knowledge">${l.knowledge}: -</p>
+            <div id="inventory-section">
+              <h4>物品列表:</h4>
+              <div id="inventory-list"></div>
+            </div>
+          `;
+        }
+        // 确保建造和制造按钮存在
+        let craftBtn = document.getElementById('craft-btn');
+        let buildBtn = document.getElementById('build-btn');
+        
+        if (!craftBtn) {
+          craftBtn = document.createElement('button');
+          craftBtn.id = 'craft-btn';
+          craftBtn.textContent = '制造';
+          craftBtn.onclick = showCraftOptions;
+          statusContent.appendChild(craftBtn);
+        }
+        
+        if (!buildBtn) {
+          buildBtn = document.createElement('button');
+          buildBtn.id = 'build-btn';
+          buildBtn.textContent = '建造';
+          buildBtn.onclick = showBuildOptions;
+          statusContent.appendChild(buildBtn);
+        }
+        
+        // 根据语言设置更新按钮文本
+        craftBtn.textContent = lang === 'zh' ? '制造' : 'Craft';
+        buildBtn.textContent = lang === 'zh' ? '建造' : 'Build';
+        
+        // 更新基本状态数值
+        document.getElementById('player-name-pos').textContent = `${name} (${x}, ${y})`;
+        document.getElementById('player-health').textContent = `${l.health}: ${health}/${maxHealth}`;
+        document.getElementById('player-hunger').textContent = `${l.hunger}: ${hunger.toFixed(1)}`;
+        document.getElementById('player-thirst').textContent = `${l.thirst}: ${thirst.toFixed(1)}`;
+        document.getElementById('player-fatigue').textContent = `${l.fatigue}: ${fatigue.toFixed(1)}`;
+        document.getElementById('player-attack').textContent = `${l.attackPower}: ${attackPower.toFixed(1)}`;
+        document.getElementById('player-intelligence').textContent = `${l.intelligence}: ${(intelligence * 100).toFixed(1)}%`;
+        document.getElementById('player-knowledge').textContent = `${l.knowledge}: ${Array.isArray(knownKnowledges) ? knownKnowledges.join(', ') : 'None'}`;
+        
+        // 更新物品列表
+        const inventoryList = document.getElementById('inventory-list');
+        if (inventoryList) {
+          // 检查物品是否发生了变化
+          const currentInventory = Array.isArray(window.lastInventory) ? window.lastInventory : [];
+          const newInventory = Array.isArray(inventory) ? inventory : [];
+          
+          const hasChanges = currentInventory.length !== newInventory.length || 
+            currentInventory.some((item, index) => 
+              item.name !== newInventory[index]?.name || 
+              item.type !== newInventory[index]?.type || 
+              item.effectValue !== newInventory[index]?.effectValue ||
+              item.stackSize !== newInventory[index]?.stackSize
+            );
+          
+          // 仅在物品发生变化时才更新列表
+          if (hasChanges) {
+            inventoryList.innerHTML = ''; // 清空现有列表
+            
+            if (newInventory.length > 0) {
+              newInventory.forEach((item, index) => {
+                const li = document.createElement('p');
+                li.innerHTML = `${item.name || item} [${item.stackSize}] <button class="drop-btn" onclick="dropItem(${index})">${l.drop}</button>`;
+                inventoryList.appendChild(li);
+              });
+            } else {
+              const li = document.createElement('p');
+              li.textContent = '背包为空';
+              inventoryList.appendChild(li);
+            }
+            
+            window.lastInventory = newInventory; // 保存当前库存用于下次比较
+          }
+        }
       }
     }
     
+    // 丢弃物品函数
+    function dropItem(index) {
+      // 通过postMessage发送消息给游戏场景
+      if (window.game) {
+        const gameScene = window.game.scene.getScene('GameScene');
+        if (gameScene && gameScene.player) {
+          // 直接调用玩家的dropItem方法
+          gameScene.player.dropItem(index, gameScene.world);
+        }
+      } else {
+        // 如果游戏实例还未初始化，通过postMessage通知
+        window.parent.postMessage({
+          type: 'DROP_ITEM',
+          index: index
+        }, '*');
+      }
+    }
     
     // 显示幸存者日志
     function showSurvivorLogs(name, logs) {
