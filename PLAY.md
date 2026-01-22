@@ -29,6 +29,8 @@ So if you have enough persuasiveness, you can even let them divide the work and 
 ## Items can craft
 + some weapons
 + some armors
++ some potions
++ many materials
 
 when in bag, they will be auto equipped, better ones will replace the old ones.
 
