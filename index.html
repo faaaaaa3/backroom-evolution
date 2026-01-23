@@ -259,7 +259,7 @@
       color: white;
       border: 1px solid #fff;
       border-radius: 3px;
-    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3>Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"></div><div id="event-log" class="fixed-panel"><h3>Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3>Dialogues</h3><div id="dialogue-content">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3>Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><div id="chat-with" style="font-weight: bold;">Chatting with: <span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3>AI Configuration</h3><label for="api-url">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key">API Key:</label><br/><input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-chat" value="deepseek-chat"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config">Save Config</button> <button id="close-ai-config">Close</button></div></div><div class="controls"><p><strong>Controls:</strong></p><p>Arrow Keys: Move Player | WASD: Move Camera | X: Dismantle Near Material Wall to Collect Resources | R: (debug) Random Teleport | P: (debug) Spawn Person | K: (debug) Learn Knowledge | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Space: Pause | Some of these have a cooldown duration. Auto pick items on ground.<button onclick="window.open('./PLAY.md')">more about this game.</button></p><button id="open-ai-config">Configure AI</button> <span>the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><button id="current-lang" onclick="document.querySelector('#current-lang').textContent = document.querySelector('#current-lang').textContent == 'EN' ? 'ZH': 'EN';">ZH</button></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
+    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3 id="player-status-title">Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"></div><div id="event-log" class="fixed-panel"><h3 id="event-log-title">Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3 id="dialogues-title">Dialogues</h3><div id="dialogue-content" id="no-dialogues-text">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3 id="survivors-monsters-title">Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><div id="chat-with" style="font-weight: bold;"><span id="chatting-with-text">Chatting with: </span><span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3 id="ai-config-title">AI Configuration</h3><label for="api-url" id="api-url-label">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key" id="api-key-label">API Key:</label><br/><input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-chat" value="deepseek-chat"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config" id="save-config-text">Save Config</button> <button id="close-ai-config" id="close-text">Close</button></div></div><div class="controls"><p><strong id="controls-text">Controls:</strong></p><p id="controls-desc">Arrow Keys: Move Player | WASD: Move Camera | X: Dismantle Near Material Wall to Collect Resources | R: (debug) Random Teleport | P: (debug) Spawn Person | K: (debug) Learn Knowledge | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Space: Pause | Some of these have a cooldown duration. Auto pick items on ground.<button onclick="window.open('./PLAY.md')" id="more-about-game">more about this game.</button></p><button id="open-ai-config">Configure AI</button> <span id="ai-roleplay-desc">the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><button id="current-lang" onclick="toggleLanguage()">zh</button></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
     let gameStats = document.getElementById('game-stats');
     let playerInfo = document.getElementById('player-info');
     let eventLog = document.getElementById('event-log');
@@ -272,6 +272,54 @@
     let logsPanel = document.getElementById('logs-panel');
     let aiConfigPanel = document.getElementById('ai-config-panel');
     let tickRatePanel = document.getElementById('tick-rate-panel');
+    
+    // Function to toggle language
+    function toggleLanguage() {
+      if (window.I18n) {
+        const newLocale = window.I18n.getLocale() === 'zh' ? 'en' : 'zh';
+        window.I18n.setLocale(newLocale);
+        currentLangElement.textContent = newLocale.toUpperCase();
+        updateLocalization();
+      }
+    }
+    
+    // Function to update all localized content
+    function updateLocalization() {
+      if (!window.I18n) return;
+      
+      // Update titles and labels
+      document.getElementById('player-status-title').textContent = window.I18n.t('player_status_title');
+      document.getElementById('event-log-title').textContent = window.I18n.t('event_log_title');
+      document.getElementById('clear-logs-btn').textContent = window.I18n.t('clear_logs_button');
+      document.getElementById('dialogues-title').textContent = window.I18n.t('dialogues_title');
+      document.getElementById('no-dialogues-text').textContent = window.I18n.t('no_dialogues_text');
+      document.getElementById('toggle-dialogue-btn').textContent = window.I18n.t('hide_dialogues_button');
+      document.getElementById('survivors-monsters-title').textContent = window.I18n.t('survivors_monsters_title');
+      document.getElementById('toggle-survivor-btn').textContent = window.I18n.t('hide_details_button');
+      document.getElementById('chatting-with-text').textContent = window.I18n.t('chatting_with_text');
+      document.getElementById('ai-config-title').textContent = window.I18n.t('ai_config_title');
+      document.getElementById('api-url-label').textContent = window.I18n.t('api_url_label');
+      document.getElementById('api-key-label').textContent = window.I18n.t('api_key_label');
+      document.getElementById('save-ai-config').textContent = window.I18n.t('save_config_button');
+      document.getElementById('close-ai-config').textContent = window.I18n.t('close_button');
+      document.getElementById('controls-text').textContent = window.I18n.t('controls_text');
+      document.getElementById('more-about-game').textContent = window.I18n.t('more_about_game_button');
+      document.getElementById('ai-roleplay-desc').textContent = window.I18n.t('ai_roleplay_description');
+    }
+    
+    // Initialize localization when the page loads and I18n is available
+    function initializeLocalization() {
+      // Wait for I18n to be available
+      const checkInterval = setInterval(() => {
+        if (window.I18n) {
+          clearInterval(checkInterval);
+          updateLocalization();
+        }
+      }, 100);
+    }
+    
+    // Call initialization when page loads
+    document.addEventListener('DOMContentLoaded', initializeLocalization);
     
     // 更新游戏统计数据
     function updateGameStats(day, tick, alive, dead, monsters) {
@@ -535,7 +583,8 @@
     // 切换语言
     window.switchLanguage = function() {
       const currentLang = currentLangElement.textContent;
-      currentLangElement.textContent = currentLang === 'ZH' ? 'EN' : 'ZH';
+      currentLangElement.textContent = currentLang === 'zh' ? 'en' : 'zh';
+      updateLocalization();
     };
     
     // 切换AI配置面板显示/隐藏
@@ -744,7 +793,9 @@
           const dialogueLog = document.getElementById('dialogue-log');
           if (dialogueLog) {
             dialogueLog.classList.toggle('hidden');
-            dialogueToggleBtn.textContent = dialogueLog.classList.contains('hidden') ? 'Show Dialogues' : 'Hide Dialogues';
+            dialogueToggleBtn.textContent = dialogueLog.classList.contains('hidden') ? 
+              (window.I18n ? window.I18n.t('show_dialogues_button') : 'Show Dialogues') : 
+              (window.I18n ? window.I18n.t('hide_dialogues_button') : 'Hide Dialogues');
           }
         };
       }
@@ -756,7 +807,9 @@
           const survivorDetails = document.getElementById('survivor-details');
           if (survivorDetails) {
             survivorDetails.classList.toggle('hidden');
-            survivorToggleBtn.textContent = survivorDetails.classList.contains('hidden') ? 'Show Details' : 'Hide Details';
+            survivorToggleBtn.textContent = survivorDetails.classList.contains('hidden') ? 
+              (window.I18n ? window.I18n.t('show_details_button') : 'Show Details') : 
+              (window.I18n ? window.I18n.t('hide_details_button') : 'Hide Details');
           }
         };
       }
@@ -810,6 +863,9 @@
           }
           if (config.apiKey) {
             document.getElementById('api-key').value = config.apiKey;
+          }
+          if (config.apiModel) {
+            document.getElementById('api-model').value = config.apiModel;
           }
         };
       }
