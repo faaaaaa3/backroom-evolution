@@ -974,7 +974,8 @@
               
               window.game.scene.getScene('GameScene').attemptCraft(item);
             }
-            alert(`正在尝试制造: ${item.name}`);
+            //alert(`正在尝试制造: ${item.name}`);
+            
           };
           
           craftOptions.appendChild(itemElement);
@@ -1094,7 +1095,7 @@
             if (window.game) {
               window.game.scene.getScene('GameScene').attemptBuild(building);
             }
-            alert(`正在尝试建造: ${building.name}`);
+            //alert(`正在尝试建造: ${building.name}`);
           };
           
           buildOptions.appendChild(buildingElement);
