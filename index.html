@@ -1,266 +1,301 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Backsur - Roguelike Survival Game</title><style>body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Backsur - Roguelike Survival Game</title><style>:root {
+      --bg-primary: #0a0e17;
+      --bg-panel: rgba(15, 23, 42, 0.88);
+      --border-color: rgba(148, 163, 184, 0.18);
+      --border-active: rgba(56, 189, 248, 0.45);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-cyan: #22d3ee;
+      --accent-amber: #fbbf24;
+      --accent-green: #4ade80;
+      --accent-red: #fb7185;
+      --accent-purple: #a78bfa;
+      --glow-blue: 0 0 16px rgba(56, 189, 248, 0.12);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-sans: -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+      --shadow-panel: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: var(--font-sans);
       overflow: hidden;
-      background-color: #000;
-      color: white;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
-
-    #game-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
+    #game-container { position: relative; width: 100vw; height: 100vh; z-index: 1; }
+    #game-container::after {
+      content: ''; position: absolute; inset: 0; z-index: 10; pointer-events: none;
+      background: radial-gradient(ellipse 40% 100% at 50% 50%, transparent 30%, #0a0e17 55%);
     }
-
     #ui-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 100;
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 100;
     }
-
     .fixed-panel {
-      position: fixed;
-      pointer-events: auto;
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid #fff;
-      padding: 10px;
-      border-radius: 5px;
-      max-height: 600px;
-      overflow-y: auto;
+      position: fixed; pointer-events: auto;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      padding: 12px; border-radius: var(--radius-md);
+      max-height: 50vh; overflow-y: auto;
+      box-shadow: var(--shadow-panel);
+      transition: border-color 0.2s, opacity 0.25s;
+      z-index: 200;
     }
-    #game-stats {
-      position: fixed;
-      left:10px;
-      top: 10px;
+    .fixed-panel:hover { border-color: var(--border-active); box-shadow: var(--shadow-panel), var(--glow-blue); }
+    .fixed-panel h3 {
+      margin: 0 0 10px 0; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--accent-blue);
+      border-bottom: 1px solid var(--border-color); padding-bottom: 8px;
     }
-    #player-info {
-      top: 140px;
-      left: 10px;
-      max-height: 300px;
-      overflow-y: auto;
+    #game-stats { left: 12px; top: 12px; font-size: 12px; color: var(--text-secondary); width: 230px; padding: 0; }
+    #game-stats .stat-row { display: flex; gap: 0; white-space: nowrap; }
+    #game-stats .stat-cell { display: inline-flex; align-items: baseline; gap: 3px; flex: 1; }
+    #game-stats .stat-label { color: var(--text-muted); }
+    #game-stats .stat-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    #stats-toolbar {
+      display: flex; gap: 2px; padding: 3px 8px; justify-content: flex-start;
+      border-bottom: 1px solid var(--border-color);
     }
-
-    #event-log {
-      top: 470px;
-      left: 10px;
-      max-height: 300px;
-      overflow-y: auto;
+    #stats-content { padding: 8px 12px; }
+    .toolbar-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; padding: 0; border: none; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      border-radius: 5px; transition: background 0.15s, color 0.15s;
     }
-     
-
-    #dialogue-log {
-      top: 10px;
-      right: 10px;
-      width: 300px;
-      max-height: 600px;
-      overflow-y: auto;
+    .toolbar-btn:hover { background: rgba(56,189,248,0.12); color: var(--accent-blue); }
+    .toolbar-btn.active { color: var(--accent-blue); }
+    #event-log, #dialogue-log, #survivor-details, .controls {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 999 !important;
     }
-
-    #survivor-details {
-      top: 10px;
-      left: 200px;
-      width: 360px;
-      max-height: 430px;
-      overflow-y: auto;
+    .panel-collapsed {
+      max-height: 0 !important;
+      overflow: hidden !important;
+      opacity: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      pointer-events: none !important;
     }
-
-    #chat-interface {
-      position: fixed;
-      bottom: 120px;
-      left: 10px;
-      width: 400px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid #fff;
-      border-radius: 5px;
-      padding: 5px;
-      display: none;
+    /* ---- summary-detail collapse for panels ---- */
+    #dialogue-log.fixed-panel,
+    #survivor-details.fixed-panel {
+      transition: max-height 0.35s ease, opacity 0.35s ease;
     }
-
-    #ai-config {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 500px;
-      background: rgba(0, 0, 0, 0.9);
-      border: 2px solid #fff;
-      border-radius: 8px;
-      padding: 20px;
-      display: none;
-      z-index: 2000;
+    #dialogue-log.fixed-panel > h3,
+    #survivor-details.fixed-panel > h3 {
+      cursor: pointer; user-select: none;
+      position: sticky; top: 0; z-index: 2;
+      padding: 10px 34px 10px 12px;
+      margin: 0; border-bottom: 1px solid var(--border-color);
+      background: rgba(15,23,42,0.97);
     }
-
-    .log-entry {
-      margin-bottom: 5px;
-      padding: 2px 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    #dialogue-log.fixed-panel > h3::before,
+    #survivor-details.fixed-panel > h3::before {
+      content: '▶'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%) rotate(0deg);
+      font-size: 9px; color: var(--text-muted);
+      transition: transform 0.3s ease;
     }
-
-    .dialogue-entry {
-      margin-bottom: 8px;
-      padding: 5px;
-      background: rgba(50, 50, 50, 0.5);
-      border-radius: 3px;
+    #dialogue-log.fixed-panel:not(.collapsed) > h3::before,
+    #survivor-details.fixed-panel:not(.collapsed) > h3::before {
+      transform: translateY(-50%) rotate(90deg);
     }
-
-    .dialogue-speaker {
-      font-weight: bold;
-      color: #4dabf7;
-      cursor: pointer;
-      text-decoration: underline;
+    #dialogue-log.fixed-panel.collapsed,
+    #survivor-details.fixed-panel.collapsed {
+      max-height: 40px !important;
+      overflow: hidden !important;
     }
-
-    .controls {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    button {
-      background: #4a6fa5;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      margin: 2px;
-      border-radius: 3px;
-      cursor: pointer;
-      pointer-events: auto;
-    }
-
-    button:hover {
-      background: #5a7fb5;
-    }
-
-    .hidden {
+    #dialogue-log.fixed-panel.collapsed > *:not(h3),
+    #survivor-details.fixed-panel.collapsed > *:not(h3) {
       display: none !important;
     }
-
+    #game-stats .stat-cell { display: inline-flex; align-items: baseline; gap: 3px; flex: 1; }
+    #game-stats .stat-label { color: var(--text-muted); }
+    #game-stats .stat-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    #player-info { top: 118px; left: 12px; max-height: 36vh; width: 230px; }
+    #status-content p { margin: 3px 0; font-size: 12px; }
+    #player-name-pos { font-size: 13px; font-weight: 600; color: var(--accent-amber); margin: 0 0 8px 0; }
+    .tag-container { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 3px 0; font-size: 12px; }
+    .tag-container .tag-label { color: var(--text-muted); margin-right: 2px; }
+    .tag-container .tag-placeholder { color: var(--text-muted); font-style: italic; }
+    .tag-container .tag {
+      display: inline-block; padding: 1px 7px; border-radius: 4px;
+      font-size: 11px; font-weight: 500; line-height: 1.5;
+      background: rgba(167, 139, 250, 0.15); color: var(--accent-purple);
+      border: 1px solid rgba(167, 139, 250, 0.2);
+    }
+    #event-log { bottom: 12px; left: 12px; max-height: 30vh; width: 230px; display: block; z-index: 101; }
+    #dialogue-log { top: 12px; right: 12px; width: 270px; max-height: 50vh; padding: 0; display: block; z-index: 101; }
+    #survivor-details { top: 12px; left: 258px; width: 320px; max-height: 45vh; padding: 0; display: block; z-index: 101; }
+    .controls { z-index: 101; }
+    #survivor-content { max-height: none; overflow-y: visible; }
+    #resource-stats { right: 12px; bottom: calc(30vh + 56px); width: 280px; max-height: 35vh; padding: 0; z-index: 102; cursor: move; }
+    .tab-bar { display: flex; border-bottom: 1px solid var(--border-color); cursor: move; }
+    .tab-btn { flex:1; padding:6px 4px; font-size:10px; background:transparent; color:var(--text-muted); border:none; cursor:pointer; border-bottom:2px solid transparent; transition:color 0.15s,border-color 0.15s; }
+    .tab-btn:hover { color:var(--accent-blue); }
+    .tab-btn.active { color:var(--accent-blue); border-bottom-color:var(--accent-blue); background:transparent; }
+    #res-content { padding:8px; font-size:11px; max-height:calc(35vh - 36px); overflow-y:auto; }
+    .res-item { display:flex; align-items:center; gap:4px; padding:3px 4px; border-bottom:1px solid rgba(148,163,184,0.06); }
+    .res-item .res-count { color:var(--text-muted); margin-left:auto; font-size:10px; }
+    .res-item .res-name { color:var(--text-secondary); flex:1; font-size:11px; }
+    #character-bio { right:36px; top:48px; width:260px; max-height:40vh; padding:0; z-index:102; }
+    #character-bio > h3 { padding:8px 12px; margin:0; font-size:11px; border-bottom:1px solid var(--border-color); cursor: grab; }
+    #bio-nav { display:flex; align-items:center; gap:4px; padding:5px 8px; border-bottom:1px solid var(--border-color); }
+    #bio-index { flex:1; text-align:center; font-size:11px; color:var(--text-muted); }
+    #bio-content { padding:8px; font-size:11px; max-height:calc(40vh - 80px); overflow-y:auto; color:var(--text-secondary); }
+    .bio-field { margin:3px 0; display:flex; gap:4px; }
+    .bio-field-label { color:var(--text-muted); flex-shrink:0; }
+    .bio-log-entry { font-size:10px; color:#64748b; margin:1px 0; padding-left:8px; }
+    .bio-btn-link { background:none; border:none; color:var(--accent-blue); cursor:pointer; padding:0; font-size:11px; text-decoration:underline; }
+    .bio-btn-link:hover { color:#60a5fa; }
+    .res-empty { color:var(--text-muted); padding:8px; font-style:italic; }
     .survivor-item {
-      margin-bottom: 8px;
-      padding: 5px;
-      background: rgba(50, 50, 50, 0.5);
-      border-radius: 3px;
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+      padding: 5px 8px; margin-bottom: 3px;
+      background: rgba(148,163,184,0.03);
+      border: 1px solid rgba(148,163,184,0.06);
+      border-radius: var(--radius-sm); transition: background 0.15s;
     }
-
+    .survivor-item:hover { background: rgba(148,163,184,0.08); }
     .survivor-name {
-      display: inline-block;
-      width: 180px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      vertical-align: middle;
+      font-weight: 500; color: var(--accent-amber); flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px;
     }
-
-    
-
-    #current-lang {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 5px 10px;
-      border-radius: 3px;
-      font-size: 14px;
-      display: block;
+    button {
+      pointer-events: auto;
+      background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(56,189,248,0.04));
+      color: var(--accent-blue); border: 1px solid rgba(56,189,248,0.2);
+      padding: 4px 12px; margin: 2px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 11px; font-family: var(--font-sans); font-weight: 500;
+      transition: all 0.15s ease; user-select: none;
     }
-
+    button:hover {
+      background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(56,189,248,0.08));
+      border-color: var(--accent-blue); box-shadow: var(--glow-blue); transform: translateY(-1px);
+    }
+    button:active { transform: translateY(0); box-shadow: none; }
+    .jump-button, .details-button, .chat-button, .ai-toggle {
+      display: inline-flex; align-items: center;
+      padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none;
+      font-weight: 500; cursor: pointer; transition: all 0.12s;
+    }
+    .jump-button { background: rgba(56,189,248,0.15); color: var(--accent-blue); }
+    .jump-button:hover { background: rgba(56,189,248,0.3); }
+    .details-button { background: rgba(167,139,250,0.15); color: var(--accent-purple); }
+    .details-button:hover { background: rgba(167,139,250,0.3); }
+    .chat-button { background: rgba(74,222,128,0.15); color: var(--accent-green); }
+    .chat-button:hover { background: rgba(74,222,128,0.3); }
+    .ai-toggle { background: rgba(251,191,36,0.15); color: var(--accent-amber); accent-color: var(--accent-amber); margin-right: 4px; }
+    .controls {
+      position: fixed; bottom: 12px; right: 12px;
+      background: var(--bg-panel); border: 1px solid var(--border-color);
+      padding: 10px 14px; border-radius: var(--radius-md);
+      font-size: 11px; line-height: 1.5;
+      box-shadow: var(--shadow-panel);
+      max-width: min(480px, calc(100vw - 24px));
+    }
+    .controls p { margin: 2px 0; }
+    #chat-interface {
+      position: fixed; bottom: 12px; left: 252px; width: 340px;
+      background: var(--bg-panel); border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); padding: 8px 12px 10px; display: none;
+      backdrop-filter: blur(20px) saturate(1.3);
+      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      box-shadow: var(--shadow-panel); z-index: 150;
+    }
+    #chat-close-btn {
+      position: absolute; top: 4px; right: 6px;
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 18px; line-height: 1; cursor: pointer; padding: 0 4px;
+      transition: color 0.15s;
+    }
+    #chat-close-btn:hover { color: var(--accent-red); }
+    #chat-messages { height: 140px; overflow-y: auto; margin: 8px 0; padding: 6px 8px; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); font-size: 12px; }
+    #chat-input { width: 100%; padding: 8px 10px; background: rgba(0,0,0,0.35); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 12px; font-family: var(--font-sans); outline: none; transition: border-color 0.15s; }
+    #chat-input:focus { border-color: var(--accent-blue); }
+    #ai-config, #tick-rate-panel {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(440px, calc(100vw - 32px));
+      background: var(--bg-panel); border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg); padding: 24px; display: none; z-index: 2000;
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    }
+    #ai-config h3, #tick-rate-panel h3 { margin: 0 0 16px 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-blue); }
+    #ai-config label, #tick-rate-panel label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    #ai-config label:first-of-type, #tick-rate-panel label:first-of-type { margin-top: 0; }
+    input[type="text"], input[type="password"], input[type="number"] {
+      width: 100%; padding: 9px 12px; margin: 4px 0;
+      background: rgba(0,0,0,0.35); color: var(--text-primary);
+      border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      font-size: 13px; font-family: var(--font-sans); outline: none; transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus { border-color: var(--accent-blue); box-shadow: var(--glow-blue); }
+    textarea { width: 100%; height: 100px; padding: 9px 12px; margin: 4px 0; background: rgba(0,0,0,0.35); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans); outline: none; resize: vertical; }
     #tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.8);
-      border: 1px solid #fff;
-      border-radius: 3px;
-      padding: 5px;
-      font-size: 12px;
-      pointer-events: none;
-      z-index: 1000;
-      white-space: nowrap;
-      max-width: 300px;
-      word-wrap: break-word;
+      position: absolute; background: var(--bg-panel); border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); padding: 8px 10px; font-size: 12px; line-height: 1.5;
+      pointer-events: none; z-index: 1000; max-width: 320px;
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
+      box-shadow: var(--shadow-panel);
     }
-    
-    .details-button {
-      display: inline-block;
-      background: #8a2be2;
-      color: white;
-      padding: 3px 6px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      margin-left: 5px;
+    #current-lang {
+      position: fixed; top: 12px; right: 12px;
+      background: rgba(148,163,184,0.1); border: 1px solid var(--border-color);
+      color: var(--text-secondary); padding: 4px 10px; border-radius: var(--radius-sm);
+      font-size: 12px; cursor: pointer; z-index: 200; font-family: var(--font-sans); transition: all 0.15s;
     }
-    .jump-button {
-      display: inline-block;
-      background: #8a2be2;
-      color: white;
-      padding: 3px 6px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      margin-left: 5px;
+    #current-lang:hover { background: rgba(148,163,184,0.2); color: var(--text-primary); border-color: var(--border-active); }
+    #craft-feedback {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--bg-panel); border: 1px solid var(--accent-green);
+      border-radius: var(--radius-lg); padding: 16px 28px; font-size: 15px;
+      color: var(--accent-green); font-weight: 600; pointer-events: none; z-index: 2000;
+      opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease;
+      text-align: center; min-width: 200px;
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
-    .chat-button {
-      display: inline-block;
-      background: #8a2be2;
-      color: white;
-      padding: 3px 6px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      margin-left: 5px;
+    #craft-feedback.show { opacity: 1; transform: translate(-50%, -60%); }
+    #craft-feedback.error { border-color: var(--accent-red); color: var(--accent-red); }
+    @media (max-width: 1024px) {
+      #survivor-details { left: auto; right: 12px; width: 260px; top: 12px; }
+      #player-info { width: 200px; }
+      #game-stats { width: 200px; }
+      #event-log { width: 200px; }
+      .controls { max-width: min(360px, calc(100vw - 24px)); }
     }
-    
-    .ai-toggle {
-      display: inline-block;
-      background: #ff6b6b;
-      color: white;
-      padding: 3px 6px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      margin-right: 5px;
-    }
-    
-    .ai-toggle.enabled {
-      background: #51cf66;
-    }
-    
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-      box-sizing: border-box;
-      background: rgba(50, 50, 50, 0.8);
-      color: white;
-      border: 1px solid #fff;
-      border-radius: 3px;
-    }
-    
-    textarea {
-      width: 100%;
-      height: 100px;
-      padding: 8px;
-      margin: 5px 0;
-      box-sizing: border-box;
-      background: rgba(50, 50, 50, 0.8);
-      color: white;
-      border: 1px solid #fff;
-      border-radius: 3px;
-    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3 id="player-status-title">Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"></div><div id="event-log" class="fixed-panel"><h3 id="event-log-title">Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3 id="dialogues-title">Dialogues</h3><div id="dialogue-content" id="no-dialogues-text">No dialogues yet...</div><button id="toggle-dialogue-btn">Hide Dialogues</button></div><div id="survivor-details" class="fixed-panel"><h3 id="survivors-monsters-title">Survivors & Monsters</h3><div id="survivor-content">Loading...</div><button id="toggle-survivor-btn">Hide Details</button></div><div id="chat-interface" class="fixed-panel"><div id="chat-with" style="font-weight: bold;"><span id="chatting-with-text">Chatting with: </span><span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3 id="ai-config-title">AI Configuration</h3><label for="api-url" id="api-url-label">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key" id="api-key-label">API Key:</label><br/><input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-chat" value="deepseek-chat"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config" id="save-config-text">Save Config</button> <button id="close-ai-config" id="close-text">Close</button></div></div><div class="controls"><p><strong id="controls-text">Controls:</strong></p><p id="controls-desc">Arrow Keys: Move Player | WASD: Move Camera | X: Dismantle Near Material Wall to Collect Resources | R: (debug) Random Teleport | P: (debug) Spawn Person | K: (debug) Learn Knowledge | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Alt+Click: build at click pos | Space: Pause | Some of these have a cooldown duration. Auto pick items on ground.<button onclick="window.open('./PLAY.md')" id="more-about-game">more about this game.</button></p><button id="open-ai-config">Configure AI</button> <span id="ai-roleplay-desc">the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><button id="current-lang" onclick="toggleLanguage()">zh</button></div><div id="tooltip" style="display: none;"></div><script>// 全局游戏状态变量
+    @media (max-width: 768px) {
+      .fixed-panel:not(#dialogue-log):not(#survivor-details) { max-height: 35vh; padding: 10px; }
+      #player-info { width: 170px; font-size: 11px; left: 8px; }
+      #game-stats { left: 8px; top: 8px; font-size: 11px; width: 170px; }
+      #survivor-details { width: calc(100vw - 200px); right: 8px; top: 8px; left: auto; min-width: 160px; }
+      #event-log { width: 170px; left: 8px; bottom: 8px; }
+      #chat-interface { width: calc(100vw - 16px); left: 8px; bottom: 8px; }
+      .controls { left: 8px; right: 8px; bottom: 8px; max-width: none; font-size: 10px; }
+      #current-lang { top: 8px; right: 8px; }
+      .survivor-item { font-size: 11px; }
+    }</style><script defer="defer" src="bundle.js"></script></head><body><div id="game-container"></div><div id="ui-overlay"><div id="player-info" class="fixed-panel"><h3 id="player-status-title">Player Status</h3><div id="status-content">Loading...</div></div><div id="game-stats" class="fixed-panel"><div id="stats-toolbar"><button class="toolbar-btn active" data-panel="event-log" onclick="togglePanel('event-log')" title="Event Log"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14h.01"/><path d="M12 14h.01"/><path d="M15 14h.01"/><path d="M9 17h.01"/><path d="M12 17h.01"/><path d="M15 17h.01"/></svg></button> <button class="toolbar-btn active" data-panel="dialogue-log" onclick="togglePanel('dialogue-log')" title="Dialogues"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button> <button class="toolbar-btn" data-panel="resource-stats" onclick="togglePanel('resource-stats');setTimeout(refreshResourceStats,50)" title="资源统计"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="4" height="4"/><rect x="17" y="3" width="4" height="4"/><rect x="3" y="17" width="4" height="4"/><rect x="17" y="17" width="4" height="4"/><line x1="7" y1="7" x2="17" y2="17"/><line x1="7" y1="17" x2="17" y2="7"/></svg></button> <button class="toolbar-btn" data-panel="character-bio" onclick="togglePanel('character-bio');setTimeout(refreshCharacterBio,50)" title="人物志"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button></div><div id="stats-content"></div></div></div><div id="event-log" class="fixed-panel"><h3 id="event-log-title">Event Log</h3><div id="log-content"></div><button id="clear-logs-btn">Clear Logs</button></div><div id="dialogue-log" class="fixed-panel"><h3 id="dialogues-title" onclick="this.parentElement.classList.toggle('collapsed')">Dialogues</h3><div id="dialogue-content"><span id="no-dialogues-text">No dialogues yet...</span></div></div><div id="survivor-details" class="fixed-panel"><h3 id="survivors-monsters-title" onclick="this.parentElement.classList.toggle('collapsed')">Survivors & Monsters</h3><div id="survivor-content">Loading...</div></div><div id="resource-stats" class="fixed-panel panel-collapsed"><div class="tab-bar"><button class="tab-btn active" onclick="switchResTab('ground-items',this)">地面物品</button> <button class="tab-btn" onclick="switchResTab('food',this)">食物</button> <button class="tab-btn" onclick="switchResTab('buildings',this)">建筑</button></div><div id="res-content"></div></div><div id="character-bio" class="fixed-panel panel-collapsed"><h3>人物志</h3><div id="bio-nav"><button id="bio-prev" onclick="switchBio(-1)">◀</button> <span id="bio-index">0/0</span> <button id="bio-next" onclick="switchBio(1)">▶</button> <button id="bio-detail-btn" onclick="openBioDetail()">详情</button></div><div id="bio-content"></div></div><div id="chat-interface" class="fixed-panel"><button id="chat-close-btn" onclick="hideChatInterface()">&times;</button><div id="chat-with" style="font-weight: bold;"><span id="chatting-with-text">Chatting with: </span><span id="chat-target">None</span></div><div id="chat-messages" style="height: 150px; overflow-y: auto; margin: 10px 0; padding: 5px; background: rgba(50, 50, 50, 0.5); border-radius: 3px;"></div><input id="chat-input" placeholder="Type your message here..."></div><div id="ai-config" class="fixed-panel"><h3 id="ai-config-title">AI Configuration</h3><label for="api-url" id="api-url-label">API URL:</label> <input id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.deepseek.com/chat/completions"> <label for="api-key" id="api-key-label">API Key:</label><br/><input type="password" id="api-key" placeholder="Enter your API key"> <input id="api-model" placeholder="deepseek-v4-flash" value="deepseek-v4-flash"><div style="text-align: center; margin-top: 15px;"><button id="save-ai-config">Save Config</button> <button id="close-ai-config" id="close-text">Close</button></div></div><div id="tick-rate-panel" class="fixed-panel"><h3 id="tick-rate-title">Tick Rate Settings</h3><label for="tick-rate" id="tick-rate-label">Ticks per Second:</label> <input type="number" id="tick-rate" min="1" max="60" value="10" style="width: 100%; padding: 8px; margin: 10px 0; box-sizing: border-box; background: rgba(50, 50, 50, 0.8); color: white; border: 1px solid #fff; border-radius: 3px;"><p id="tick-rate-desc" style="font-size: 12px; color: #aaa; margin: 5px 0;">Set how many game logic updates occur per second (1-60). Higher values make the game run faster.</p><div style="text-align: center; margin-top: 15px;"><button id="save-tick-rate">Save Settings</button> <button id="close-tick-rate">Close</button></div></div><div class="controls"><p><strong id="controls-text">Controls:</strong></p><p id="controls-desc">Arrow Keys: Move Player | WASD: Move Camera | X: Dismantle Near Material Wall to Collect Resources | R: (debug) Random Teleport | P: (debug) Spawn Person | K: (debug) Learn Knowledge | A: Attack Nearby Monster | Shift+Click: Set Path & Auto Move | Alt+Click: build at click pos | Space: Pause | Some of these have a cooldown duration. Auto pick items on ground.<button onclick="window.open('./PLAY.md')" id="more-about-game">more about this game.</button></p><button id="open-ai-config">Configure AI</button> <button id="open-tick-rate">Tick Rate Settings</button> <span id="ai-roleplay-desc">the checkbox near the name toggle whether AI role play this person. click the chat button to talk to them.</span></div><button id="current-lang" onclick="toggleLanguage()">zh</button><div id="tooltip" style="display: none;"></div><div id="craft-feedback" style="display: none;"></div><script>// 全局游戏状态变量
     let gameStats = document.getElementById('game-stats');
+    let statsContent = document.getElementById('stats-content');
     let playerInfo = document.getElementById('player-info');
     let eventLog = document.getElementById('event-log');
     let tooltip = document.getElementById('tooltip');
@@ -272,6 +307,27 @@
     let logsPanel = document.getElementById('logs-panel');
     let aiConfigPanel = document.getElementById('ai-config-panel');
     let tickRatePanel = document.getElementById('tick-rate-panel');
+    
+    // Toggle panel visibility
+    window.togglePanel = function(panelId) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      const isHidden = panel.classList.contains('panel-collapsed');
+      panel.classList.toggle('panel-collapsed');
+      const btn = document.querySelector(`.toolbar-btn[data-panel="${panelId}"]`);
+      if (btn) btn.classList.toggle('active', !isHidden);
+    }
+    // Init panels visible
+    document.addEventListener('DOMContentLoaded', () => {
+      ['event-log', 'dialogue-log', 'survivor-details'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('panel-collapsed');
+          const btn = document.querySelector(`.toolbar-btn[data-panel="${id}"]`);
+          if (btn) btn.classList.add('active');
+        }
+      });
+    });
     
     // Function to toggle language
     function toggleLanguage() {
@@ -302,15 +358,19 @@
         ['clear-logs-btn', 'clear_logs_button'],
         ['dialogues-title', 'dialogues_title'],
         ['no-dialogues-text', 'no_dialogues_text'],
-        ['toggle-dialogue-btn', 'hide_dialogues_button'],
         ['survivors-monsters-title', 'survivors_monsters_title'],
-        ['toggle-survivor-btn', 'hide_details_button'],
         ['chatting-with-text', 'chatting_with_text'],
         ['ai-config-title', 'ai_config_title'],
         ['api-url-label', 'api_url_label'],
         ['api-key-label', 'api_key_label'],
         ['save-ai-config', 'save_config_button'],
         ['close-ai-config', 'close_button'],
+        ['tick-rate-title', 'tick_rate_title'],
+        ['tick-rate-label', 'tick_rate_label'],
+        ['tick-rate-desc', 'tick_rate_desc'],
+        ['save-tick-rate', 'save_tick_rate_button'],
+        ['close-tick-rate', 'close_button'],
+        ['open-tick-rate', 'tick_rate_button'],
         ['controls-text', 'controls_text'],
         ['more-about-game', 'more_about_game_button'],
         ['ai-roleplay-desc', 'ai_roleplay_description']
@@ -349,7 +409,7 @@
     
     // 更新游戏统计数据
     function updateGameStats(day, tick, alive, dead, monsters) {
-      if (gameStats) {
+      if (statsContent) {
         const lang = currentLangElement.textContent === 'zh' ? 'zh' : 'en';
         const labels = {
           zh: { day: '天数', tick: '滴答', alive: '存活', dead: '死亡', monsters: '怪物' },
@@ -357,12 +417,16 @@
         };
         const l = labels[lang];
         
-        gameStats.innerHTML = `
-          ${l.day}: ${day}<br>
-          ${l.tick}: ${tick}<br>
-          ${l.alive}: ${alive}<br>
-          ${l.dead}: ${dead}<br>
-          ${l.monsters}: ${monsters}
+        statsContent.innerHTML = `
+          <div class="stat-row">
+            <span class="stat-cell"><span class="stat-label">${l.day}:</span><span class="stat-value">${day}</span></span>
+            <span class="stat-cell"><span class="stat-label">${l.tick}:</span><span class="stat-value">${tick}</span></span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-cell"><span class="stat-label">${l.alive}:</span><span class="stat-value">${alive}</span></span>
+            <span class="stat-cell"><span class="stat-label">${l.dead}:</span><span class="stat-value">${dead}</span></span>
+            <span class="stat-cell"><span class="stat-label">${l.monsters}:</span><span class="stat-value">${monsters}</span></span>
+          </div>
         `;
       }
     }
@@ -417,7 +481,7 @@
             <p id="player-fatigue">${l.fatigue}: -</p>
             <p id="player-attack">${l.attackPower}: -</p>
             <p id="player-intelligence">${l.intelligence}: -</p>
-            <p id="player-knowledge" style="white-space: pre-wrap;">${l.knowledge}: -</p>
+            <div id="player-knowledge" class="tag-container"><span class="tag-label">${l.knowledge}:</span> <span class="tag-placeholder">-</span></div>
             <div id="inventory-section">
               <h4 id="item-list-title">物品列表:</h4>
               <div id="inventory-list"></div>
@@ -459,7 +523,14 @@
         document.getElementById('player-fatigue').textContent = `${l.fatigue}: ${fatigue.toFixed(1)}`;
         document.getElementById('player-attack').textContent = `${l.attackPower}: ${attackPower.toFixed(1)}`;
         document.getElementById('player-intelligence').textContent = `${l.intelligence}: ${(intelligence * 100).toFixed(1)}%`;
-        document.getElementById('player-knowledge').textContent = `${l.knowledge}: ${Array.isArray(knownKnowledges) ? knownKnowledges.join('\n') : 'None'}`;
+        const knowledgeEl = document.getElementById('player-knowledge');
+        if (knowledgeEl) {
+          if (Array.isArray(knownKnowledges) && knownKnowledges.length > 0) {
+            knowledgeEl.innerHTML = `<span class="tag-label">${l.knowledge}:</span> ${knownKnowledges.map(k => `<span class="tag">${k}</span>`).join(' ')}`;
+          } else {
+            knowledgeEl.innerHTML = `<span class="tag-label">${l.knowledge}:</span> <span class="tag-placeholder">None</span>`;
+          }
+        }
         
         // 更新物品列表
         const inventoryList = document.getElementById('inventory-list');
@@ -691,6 +762,30 @@
       }
     };
     
+    // 显示制造反馈浮动文字
+    window.showCraftFeedback = function(message, isSuccess = true) {
+      const feedback = document.getElementById('craft-feedback');
+      if (!feedback) return;
+      
+      // 设置消息和样式
+      feedback.textContent = message;
+      feedback.className = isSuccess ? '' : 'error';
+      feedback.style.display = 'block';
+      
+      // 触发动画
+      setTimeout(() => {
+        feedback.classList.add('show');
+      }, 10);
+      
+      // 2秒后隐藏
+      setTimeout(() => {
+        feedback.classList.remove('show');
+        setTimeout(() => {
+          feedback.style.display = 'none';
+        }, 300);
+      }, 2000);
+    };
+    
     // 添加事件到事件日志
     window.addEventLog = function(event) {
       if (eventLog) {
@@ -706,16 +801,30 @@
       }
     };
 
-    function addDialogueToUI(speaker, content, x, y) {
+    function addDialogueToUI(speaker, content, x, y, reciever) {
+      const noDialogues = document.getElementById('no-dialogues-text');
+      if (noDialogues) noDialogues.style.display = 'none';
+
       const dialogueEntry = document.createElement('div');
       dialogueEntry.className = 'dialogue-entry';
       
       const speakerSpan = document.createElement('span');
       speakerSpan.className = 'dialogue-speaker';
       speakerSpan.textContent = speaker;
-      speakerSpan.onclick = () => centerCameraOnPerson(speaker, x, y);
+      speakerSpan.onclick = () => showPersonDetailsByName(speaker);
       
       dialogueEntry.appendChild(speakerSpan);
+      if (reciever) {
+        const arrow = document.createElement('span');
+        arrow.className = 'dialogue-arrow';
+        arrow.textContent = ' → ';
+        dialogueEntry.appendChild(arrow);
+        const receiverSpan = document.createElement('span');
+        receiverSpan.className = 'dialogue-speaker';
+        receiverSpan.textContent = reciever;
+        receiverSpan.onclick = () => showPersonDetailsByName(reciever);
+        dialogueEntry.appendChild(receiverSpan);
+      }
       dialogueEntry.innerHTML += `: ${content}`;
       
       const dialogueContent = document.getElementById('dialogue-content');
@@ -731,8 +840,228 @@
       }
     }
 
+    function jumpTo(x, y) { centerCameraOnPerson('', x, y); }
+
+    function makeDraggable(panel, handle) {
+      let dragging = false, startX = 0, startY = 0, origL = 0, origT = 0;
+      handle.style.cursor = 'grab';
+      handle.addEventListener('mousedown', (e) => {
+        var t = e.target; if (t && t.nodeType === 1 && (t.tagName === 'BUTTON' || t.closest('button'))) return;
+        dragging = true; startX = e.clientX; startY = e.clientY;
+        const rect = panel.getBoundingClientRect();
+        origL = rect.left; origT = rect.top;
+        panel.style.left = origL + 'px'; panel.style.top = origT + 'px';
+        panel.style.right = ''; panel.style.bottom = '';
+        handle.style.cursor = 'grabbing';
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        panel.style.left = (origL + e.clientX - startX) + 'px';
+        panel.style.top = (origT + e.clientY - startY) + 'px';
+      });
+      document.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false; handle.style.cursor = 'grab';
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var rsPanel = document.getElementById('resource-stats');
+      var rsHandle = rsPanel ? rsPanel.querySelector('.tab-bar') : null;
+      if (rsPanel && rsHandle) makeDraggable(rsPanel, rsHandle);
+      var bioPanel = document.getElementById('character-bio');
+      var bioHandle = bioPanel ? bioPanel.querySelector('h3') : null;
+      if (bioPanel && bioHandle) makeDraggable(bioPanel, bioHandle);
+    });
+
+    function getGameScene() {
+      return window.game ? window.game.scene.getScene('GameScene') : null;
+    }
+
+    // ─── 死亡人物数据库 (IndexedDB) ───
+    function openDeadDB() {
+      return new Promise((res, rej) => {
+        const req = indexedDB.open('backsur', 1);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains('deadPersons'))
+            req.result.createObjectStore('deadPersons', { keyPath: 'name' });
+        };
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+      });
+    }
+    async function loadDeadPerson(name) {
+      try {
+        const db = await openDeadDB();
+        return new Promise((res, rej) => {
+          const tx = db.transaction('deadPersons', 'readonly');
+          const req = tx.objectStore('deadPersons').get(name);
+          req.onsuccess = () => res(req.result || null);
+          req.onerror = () => rej(req.error);
+        });
+      } catch(e) { return null; }
+    }
+    async function getAllDeadPersonNames() {
+      try {
+        const db = await openDeadDB();
+        return new Promise((res, rej) => {
+          const tx = db.transaction('deadPersons', 'readonly');
+          const req = tx.objectStore('deadPersons').getAll();
+          req.onsuccess = () => res((req.result||[]).map(d => d.name));
+          req.onerror = () => rej(req.error);
+        });
+      } catch(e) { return []; }
+    }
+
+    // ─── 资源统计面板 ───
+    function refreshResourceStats() {
+      const scene = getGameScene();
+      if (!scene || !scene.world) return;
+      const world = scene.world;
+      const activeTab = document.querySelector('#resource-stats .tab-btn.active');
+      const tab = activeTab ? activeTab.getAttribute('onclick').match(/'([^']+)'/)[1] : 'ground-items';
+      const content = document.getElementById('res-content');
+      if (tab === 'ground-items') renderGroundItems(world, content);
+      else if (tab === 'food') renderFoodItems(world, content);
+      else if (tab === 'buildings') renderBuildings(world, content);
+    }
+    function switchResTab(tab, btn) {
+      document.querySelectorAll('#resource-stats .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      refreshResourceStats();
+    }
+    function renderGroundItems(world, content) {
+      const groups = {};
+      for (let x = 0; x < world.width; x++) {
+        for (let y = 0; y < world.height; y++) {
+          for (const item of world.grid[x][y].items) {
+            const n = item.name || item.definitionId || '?';
+            if (!groups[n]) groups[n] = { count:0, items:[] };
+            groups[n].count++;
+            if (groups[n].items.length < 3) groups[n].items.push({x,y});
+          }
+        }
+      }
+      const names = Object.keys(groups);
+      if (!names.length) { content.innerHTML = '<div class="res-empty">没有地面物品</div>'; return; }
+      content.innerHTML = names.map(n => {
+        const g = groups[n];
+        const p = g.items[0];
+        return `<div class="res-item"><span class="res-name">${n}</span><span class="res-count">×${g.count}</span><button class="jump-button" onclick="jumpTo(${p.x},${p.y})">跳转</button></div>`;
+      }).join('');
+    }
+    function renderFoodItems(world, content) {
+      const foods = [];
+      for (let x = 0; x < world.width; x++) {
+        for (let y = 0; y < world.height; y++) {
+          if (world.grid[x][y].terrainType === 2) {
+            foods.push({x, y});
+          }
+        }
+      }
+      if (!foods.length) { content.innerHTML = '<div class="res-empty">没有食物方块</div>'; return; }
+      content.innerHTML = foods.map(p => {
+        return `<div class="res-item">
+          <span class="res-name">食物</span>
+          <span style="color:#64748b;font-size:10px;">[${p.x},${p.y}]</span>
+          <button class="jump-button" onclick="jumpTo(${p.x},${p.y})">跳转</button>
+        </div>`;
+      }).join('');
+    }
+    function renderBuildings(world, content) {
+      const buildings = [];
+      for (let x = 0; x < world.width; x++) {
+        for (let y = 0; y < world.height; y++) {
+          for (const b of world.grid[x][y].buildings) {
+            buildings.push({ ...b, x, y });
+          }
+        }
+      }
+      if (!buildings.length) { content.innerHTML = '<div class="res-empty">没有建筑</div>'; return; }
+      content.innerHTML = buildings.map(b => {
+        const btype = b.buildingType || (b.def ? b.def.name : '?');
+        const ownerHtml = b.owner
+          ? `<button class="bio-btn-link" onclick="showPersonDetailsByName('${b.owner}')">${b.owner}</button>`
+          : `<span style="color:#64748b;">无</span>`;
+        return `<div class="res-item">
+          <span class="res-name">${btype}</span>
+          <span style="color:#64748b;font-size:10px;">[${b.x},${b.y}]</span>
+          <span style="color:#64748b;font-size:10px;">建造者:${ownerHtml}</span>
+          <button class="jump-button" onclick="jumpTo(${b.x},${b.y})">跳转</button>
+        </div>`;
+      }).join('');
+    }
+
+    // ─── 人物志面板 ───
+    let bioIndex = 0;
+
+    async function getAllPersonData() {
+      const scene = getGameScene();
+      const alive = scene && scene.world ? scene.world.people.map((p, i) => ({ name:p.name, data:p, source:'alive', idx:i })) : [];
+      const deadNames = await getAllDeadPersonNames();
+      const dead = (await Promise.all(deadNames.map(async (n) => {
+        const d = await loadDeadPerson(n);
+        return d ? { name:n, data:d, source:'dead', idx:0 } : null;
+      }))).filter(x => x);
+      return [...alive, ...dead];
+    }
+    async function refreshCharacterBio() {
+      const all = await getAllPersonData();
+      const content = document.getElementById('bio-content');
+      const indexEl = document.getElementById('bio-index');
+      if (!all.length) {
+        content.innerHTML = '<div class="res-empty">没有人物记录</div>';
+        indexEl.textContent = '0/0';
+        return;
+      }
+      if (bioIndex >= all.length) bioIndex = 0;
+      if (bioIndex < 0) bioIndex = all.length - 1;
+      const entry = all[bioIndex];
+      indexEl.textContent = (bioIndex + 1) + '/' + all.length;
+
+      const d = entry.data;
+      const statusMap = {0:'存活',1:'饥饿而死',2:'正常死亡'};
+      const statusStr = typeof d.status === 'number' ? (statusMap[d.status] || d.status) : (d.isAlive !== false ? '存活' : '死亡');
+      const personalityStr = typeof d.personality === 'string' ? d.personality : '';
+      const logs = d.logs || [];
+      const recentLogs = logs.slice(-15).reverse();
+
+      let html = '';
+      html += '<div class="bio-field"><span class="bio-field-label">姓名:</span>' + d.name + '</div>';
+      html += '<div class="bio-field"><span class="bio-field-label">状态:</span>' + statusStr + '</div>';
+      if (personalityStr) html += '<div class="bio-field"><span class="bio-field-label">性格:</span>' + personalityStr + '</div>';
+      if (d.background) html += '<div class="bio-field"><span class="bio-field-label">生平:</span>' + d.background + '</div>';
+      if (d.memory) html += '<div class="bio-field"><span class="bio-field-label">记忆:</span>' + d.memory.slice(0, 80) + (d.memory.length > 80 ? '...' : '') + '</div>';
+      if (d.intelligence !== undefined) html += '<div class="bio-field"><span class="bio-field-label">智力:</span>' + d.intelligence.toFixed(2) + '</div>';
+      if (recentLogs.length) {
+        html += '<div style="margin-top:6px;border-top:1px solid rgba(148,163,184,0.1);padding-top:4px;"><span style="color:var(--text-muted);font-size:10px;">最近行动:</span></div>';
+        html += recentLogs.map(l => '<div class="bio-log-entry">' + l + '</div>').join('');
+      }
+      content.innerHTML = html;
+
+      // Toggle detail button visibility
+      const detailBtn = document.getElementById('bio-detail-btn');
+      detailBtn.style.display = entry.source === 'alive' ? '' : 'none';
+    }
+    async function switchBio(dir) {
+      const all = await getAllPersonData();
+      if (!all.length) return;
+      bioIndex += dir;
+      if (bioIndex >= all.length) bioIndex = 0;
+      if (bioIndex < 0) bioIndex = all.length - 1;
+      refreshCharacterBio();
+    }
+    async function openBioDetail() {
+      const all = await getAllPersonData();
+      if (!all.length || bioIndex >= all.length) return;
+      const entry = all[bioIndex];
+      if (entry.source === 'alive') {
+        showPersonDetailsByName(entry.name);
+      }
+    }
+
     function showTooltip(content, x, y) {
-      const tooltip = document.getElementById('tooltip');
       if (tooltip) {
         tooltip.innerHTML = content.replace(/\n/g, '<br>');
         tooltip.style.left = x + 10 + 'px';
@@ -813,34 +1142,6 @@
       const clearLogsBtn = document.getElementById('clear-logs-btn');
       if (clearLogsBtn) {
         clearLogsBtn.onclick = window.clearLogs;
-      }
-      
-      // 对话面板切换按钮
-      const dialogueToggleBtn = document.getElementById('toggle-dialogue-btn');
-      if (dialogueToggleBtn) {
-        dialogueToggleBtn.onclick = () => {
-          const dialogueLog = document.getElementById('dialogue-log');
-          if (dialogueLog) {
-            dialogueLog.classList.toggle('hidden');
-            dialogueToggleBtn.textContent = dialogueLog.classList.contains('hidden') ? 
-              (window.I18n ? window.I18n.t('show_dialogues_button') : 'Show Dialogues') : 
-              (window.I18n ? window.I18n.t('hide_dialogues_button') : 'Hide Dialogues');
-          }
-        };
-      }
-      
-      // 幸存者详情面板切换按钮
-      const survivorToggleBtn = document.getElementById('toggle-survivor-btn');
-      if (survivorToggleBtn) {
-        survivorToggleBtn.onclick = () => {
-          const survivorDetails = document.getElementById('survivor-details');
-          if (survivorDetails) {
-            survivorDetails.classList.toggle('hidden');
-            survivorToggleBtn.textContent = survivorDetails.classList.contains('hidden') ? 
-              (window.I18n ? window.I18n.t('show_details_button') : 'Show Details') : 
-              (window.I18n ? window.I18n.t('hide_details_button') : 'Hide Details');
-          }
-        };
       }
       
       // 添加聊天功能
@@ -925,6 +1226,63 @@
             aiConfigWindow.style.display = 'none';
           } else {
             alert('请填写完整的API配置信息！');
+          }
+        };
+      }
+      
+      // Tick速率面板相关事件
+      const openTickRateBtn = document.getElementById('open-tick-rate');
+      const tickRatePanel = document.getElementById('tick-rate-panel');
+      const closeTickRateBtn = document.getElementById('close-tick-rate');
+      const saveTickRateBtn = document.getElementById('save-tick-rate');
+      
+      if (openTickRateBtn) {
+        openTickRateBtn.onclick = () => {
+          if (tickRatePanel) {
+            // 从游戏场景获取当前tick速率
+            const gameScene = window.game?.scene?.getScene('GameScene');
+            if (gameScene && typeof gameScene.getTicksPerSecond === 'function') {
+              const currentRate = gameScene.getTicksPerSecond();
+              document.getElementById('tick-rate').value = currentRate;
+            }
+            tickRatePanel.style.display = 'block';
+          }
+        };
+      }
+      
+      if (closeTickRateBtn) {
+        closeTickRateBtn.onclick = () => {
+          if (tickRatePanel) {
+            tickRatePanel.style.display = 'none';
+          }
+        };
+      }
+      
+      if (saveTickRateBtn) {
+        saveTickRateBtn.onclick = () => {
+          const tickRateInput = document.getElementById('tick-rate');
+          const tickRate = parseInt(tickRateInput.value);
+          
+          if (isNaN(tickRate) || tickRate < 1 || tickRate > 60) {
+            alert('请输入有效的Tick速率 (1-60)');
+            return;
+          }
+          
+          // 通知游戏场景更新tick速率
+          const gameScene = window.game?.scene?.getScene('GameScene');
+          if (gameScene && typeof gameScene.setTicksPerSecond === 'function') {
+            gameScene.setTicksPerSecond(tickRate);
+            
+            // 显示成功消息
+            const lang = window.I18n ? window.I18n.getLocale() : 'en';
+            const message = lang === 'zh' 
+              ? `Tick速率已设置为 ${tickRate} ticks/s` 
+              : `Tick rate set to ${tickRate} ticks/s`;
+            alert(message);
+            
+            if (tickRatePanel) {
+              tickRatePanel.style.display = 'none';
+            }
           }
         };
       }
@@ -1203,4 +1561,13 @@
       }
       
       modal.style.display = 'flex';
-    }</script></body></html>
+    }
+    // Debug panel visibility after game init
+    setTimeout(() => {
+      ['event-log', 'dialogue-log', 'survivor-details', 'player-info', 'game-stats'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const cs = getComputedStyle(el);
+        console.log(`[panel-diag] ${id}: disp=${cs.display} vis=${cs.visibility} op=${cs.opacity} z=${cs.zIndex} rect=${el.getBoundingClientRect().width}x${el.getBoundingClientRect().height}`);
+      });
+    }, 3000);</script></body></html>
