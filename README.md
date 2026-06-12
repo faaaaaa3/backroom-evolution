@@ -48,7 +48,7 @@ If humans die from hunger here, they will turn into monsters.
 People can search for food, dismantle walls to obtain materials, freely plant, manufacture items, and build to combat hunger and monsters, and ensure their long-term survival and continuous development.
 
 
-## Memory
+## Memory(require backend server.py and EverMemOS config)
 + save some records as person memory every day(240 ticks) and no more than 10 entries to avoid too much writing
 + each async llm round, ask llm, what the person want to query from his/her memory
 + before next llm round, query EverMemOS the things the person want to query, add the query and result to the llm contexts. the llm make strategies with the memory, and respond what he/she wants to query next
