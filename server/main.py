@@ -35,7 +35,7 @@ app.add_middleware(
 EVERMEMOS_API_KEY = os.getenv("EVERMEMOS_API_KEY", "")
 DEFAULT_GROUP_ID = os.getenv("DEFAULT_GROUP_ID", "default_group")
 USE_MOCK_MODE = os.getenv("USE_MOCK_MODE", "false").lower() == "true"
-EVERMEMOS_BASE_URL = os.getenv("EVERMEMOS_BASE_URL", "https://api.evermind.ai/api/v0")
+EVERMEMOS_BASE_URL = os.getenv("EVERMEMOS_BASE_URL", "https://api.evermind.ai/api/v1")
 
 # Initialize HTTP client for API calls
 http_client = httpx.AsyncClient(timeout=30.0)
@@ -136,89 +136,6 @@ class BatchQueryResponse(BaseModel):
     results: List[QueryResult]
 
 
-@app.post("/memories/store", response_model=StoreMemoryResponse, summary="Store a memory for a user")
-async def store_memory(request: StoreMemoryRequest):
-    """
-    Store a memory for a specific user.
-    
-    - **user_id**: The user ID to associate with this memory
-    - **memory**: Memory object containing:
-        - **message_id**: Unique identifier for the message
-        - **create_time**: ISO 8601 formatted timestamp
-        - **sender**: User ID of the sender
-        - **sender_name**: Display name of the sender
-        - **content**: The memory content
-        - **group_id**: Optional group ID
-    """
-    if USE_MOCK_MODE:
-        # Mock mode - simulate successful storage
-        print(f"📝 [MOCK] Storing memory for user {request.user_id}: {request.memory.content[:50]}...")
-        return StoreMemoryResponse(
-            status="success",
-            message="Memory stored successfully (mock mode)",
-            request_id=request.memory.message_id
-        )
-    
-    try:
-        # Prepare memory data for EverMemOS API
-        memory_data = {
-            "message_id": request.memory.message_id,
-            "create_time": request.memory.create_time,
-            "sender": request.memory.sender,
-            "sender_name": request.memory.sender_name,
-            "content": request.memory.content,
-        }
-        
-        # Add group_id if provided
-        if request.memory.group_id:
-            memory_data["group_id"] = request.memory.group_id
-        else:
-            memory_data["group_id"] = DEFAULT_GROUP_ID
-        
-        # Call EverMemOS API directly
-        headers = {
-            "Authorization": f"Bearer {EVERMEMOS_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        
-        print(f"📡 Calling EverMemOS API: {EVERMEMOS_BASE_URL}/memories")
-        print(f"📦 Request data: {memory_data}")
-        
-        response = await http_client.post(
-            f"{EVERMEMOS_BASE_URL}/memories",
-            headers=headers,
-            json=memory_data
-        )
-        
-        print(f"📥 Response status: {response.status_code}")
-        print(f"📥 Response body: {response.text}")
-        
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"EverMemOS API error: {response.text}"
-            )
-        
-        api_response = response.json()
-        
-        return StoreMemoryResponse(
-            status="success",
-            message="Memory stored successfully",
-            request_id=request.memory.message_id
-        )
-        
-    except httpx.HTTPError as e:
-        print(f"❌ HTTP error storing memory: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to store memory: {str(e)}"
-        )
-    except Exception as e:
-        print(f"❌ Error storing memory: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to store memory: {str(e)}"
-        )
 
 
 @app.post("/memories/batch-store", response_model=BatchStoreResponse, summary="Batch store memories")
@@ -265,26 +182,36 @@ async def batch_store_memories(request: BatchStoreRequest):
         "Authorization": f"Bearer {EVERMEMOS_API_KEY}",
         "Content-Type": "application/json"
     }
-    
+    import time
     for memory_input in request.messages:
         try:
             # Prepare memory data
             memory_data = {
-                "message_id": memory_input.message_id,
-                "create_time": memory_input.create_time,
-                "sender": memory_input.sender,
-                "sender_name": memory_input.sender_name,
-                "content": memory_input.content,
+                "user_id": memory_input.sender,
+                "async_mode":False,
+                "messages":[{
+                    
+                    # some extra info, can be removed
+                    "message_id": memory_input.message_id,
+                    "create_time": memory_input.create_time,
+                    "sender": memory_input.sender,
+                    "sender_name": memory_input.sender_name,
+                    
+                    # the follower is what the server uses.
+                    "content": memory_input.content,
+                    "role":"user",
+                    "timestamp": int(time.time())
+                }]
             }
             
             # Add optional fields if provided
-            if memory_input.group_id:
-                memory_data["group_id"] = memory_input.group_id
-            else:
-                memory_data["group_id"] = DEFAULT_GROUP_ID
+            #if memory_input.group_id:
+            #    memory_data["group_id"] = memory_input.group_id
+            #else:
+            #    memory_data["group_id"] = DEFAULT_GROUP_ID
             
             # Call EverMemOS API directly
-            print(f"📡 Storing memory {memory_input.message_id}...")
+            print(f"📡 Storing memory {memory_input.message_id}...{memory_input.sender}->memory_input.content")
             
             response = await http_client.post(
                 f"{EVERMEMOS_BASE_URL}/memories",
@@ -295,6 +222,7 @@ async def batch_store_memories(request: BatchStoreRequest):
             print(f"📥 Response for {memory_input.message_id}: {response.status_code}")
             
             if response.status_code == 200:
+                print("store response", response.json())
                 results.append(BatchStoreResult(
                     message_id=memory_input.message_id,
                     success=True,
@@ -312,6 +240,7 @@ async def batch_store_memories(request: BatchStoreRequest):
                 failed_count += 1
                 
         except httpx.HTTPError as e:
+            print(e)
             error_msg = str(e)
             print(f"❌ HTTP error storing {memory_input.message_id}: {error_msg}")
             results.append(BatchStoreResult(
@@ -324,12 +253,12 @@ async def batch_store_memories(request: BatchStoreRequest):
             error_msg = str(e)
             print(f"❌ Error storing {memory_input.message_id}: {error_msg}")
             results.append(BatchStoreResult(
-                message_input.message_id,
+                memory_input.message_id,
                 success=False,
                 error=error_msg
             ))
             failed_count += 1
-    
+    print(results)
     return BatchStoreResponse(
         status="partial_success" if failed_count > 0 else "success",
         message=f"Stored {success_count} of {len(request.messages)} memories successfully",
@@ -381,8 +310,11 @@ async def batch_query_memories(request: BatchQueryRequest):
             #   -H "Content-Type: application/json" \
             #   -d '{ "user_id": "user_demo_001", "query": "coffee preference" }'
             search_data = {
-                "user_id": query_pair.user_id,
-                "query": query_pair.query
+                "filters":{"user_id": query_pair.user_id},
+                "query": query_pair.query,
+                "method":"hybrid",
+                "memory_types":["episodic_memory", "profile", "raw_message", "agent_memory"],
+                "top_k":5
             }
             
             print(f"📡 Querying memories for {query_pair.user_id}: {query_pair.query}")
@@ -400,18 +332,19 @@ async def batch_query_memories(request: BatchQueryRequest):
             
             if response.status_code == 200:
                 api_response = response.json()
+                print("memeory response", api_response)
                 # Extract memories array from response
                 # Expected format: {"memories": [...], "total_count": N} or similar
-                if isinstance(api_response, dict):
-                    memories = api_response.get("memories", [])
-                    total_count = api_response.get("total_count", len(memories))
+                if isinstance(api_response, dict) and "data" in api_response and isinstance(api_response["data"], dict):
+                    memories = api_response["data"].get("raw_messages", [])
+                    total_count = api_response["data"].get("total_count", len(memories))
                 else:
                     memories = []
                     total_count = 0
-                
+                import json
                 results.append(QueryResult(
                     user_id=query_pair.user_id,
-                    query=query_pair.query,
+                    query=query_pair.query + "->(" + json.dumps(memories) + ")",
                     total_count=total_count,
                     success=True,
                     error=None
@@ -447,7 +380,7 @@ async def batch_query_memories(request: BatchQueryRequest):
                 success=False,
                 error=error_msg
             ))
-    
+    print(results)
     return BatchQueryResponse(results=results)
 
 
